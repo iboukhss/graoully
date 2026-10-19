@@ -12,9 +12,11 @@ struct Motor {
     int pinEna;
     int pinIn1;
     int pinIn2;
+    float strokeMm;
+    float speedMmS;
 
     Motor()
-      : pinEna(-1), pinIn1(-1), pinIn2(-1) {}
+      : pinEna(-1), pinIn1(-1), pinIn2(-1), strokeMm(0), speedMmS(0) {}
 
     Motor(int ena, int in1, int in2)
       : pinEna(ena), pinIn1(in1), pinIn2(in2) {}
@@ -26,11 +28,18 @@ struct Motor {
         pinMode(pinIn2, OUTPUT);
     }
 
+    unsigned long getSafeTravelTimeMs() {
+        float theoreticalSeconds = strokeMm / speedMmS;
+        return (unsigned long) ((theoreticalSeconds + 2.0) * 1000.0);
+    }
+
     void extend() {
         if (pinEna == -1) return;
         digitalWrite(pinIn1, HIGH);
         digitalWrite(pinIn2, LOW);
         analogWrite(pinEna, 255);
+        delay(getSafeTravelTimeMs());
+        brake();
     }
 
     void retract() {
@@ -38,6 +47,8 @@ struct Motor {
         digitalWrite(pinIn1, LOW);
         digitalWrite(pinIn2, HIGH);
         analogWrite(pinEna, 255);
+        delay(getSafetravelTimeMs());
+        brake();
     }
 
     void brake() {
@@ -74,7 +85,7 @@ struct Dragon {
         rightEyelid     (-1, -1, -1),
         leftEar         (-1, -1, -1),
         rightEar        (-1, -1, -1),
-        mouth           (2, 22, 30)
+        mouth           (2, 22, 30, 50, 14)
     {}
 
     void begin() {
@@ -140,7 +151,5 @@ void setup()
 void loop()
 {
     graoully.mouth.extend();
-    delay(5000);
     graoully.mouth.retract();
-    delay(5000);
 }
