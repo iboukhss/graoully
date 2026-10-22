@@ -15,11 +15,19 @@ struct Motor {
     float strokeMm;
     float speedMmS;
 
-    Motor()
-      : pinEna(-1), pinIn1(-1), pinIn2(-1), strokeMm(0), speedMmS(0) {}
+    unsigned long safeTravelTimeMs = 0;
+    unsigned long travelTimeMs = 0;
+    unsigned long startTimeMs = 0;
 
-    Motor(int ena, int in1, int in2)
-      : pinEna(ena), pinIn1(in1), pinIn2(in2) {}
+    bool isMoving = false;
+
+    Motor(int ena, int in1, int in2, float stroke, float speed)
+      : pinEna(ena), pinIn1(in1), pinIn2(in2), strokeMm(stroke), speedMmS(speed)
+    {
+        if (speedMmS > 0) {
+            safeTravelTimeMs = (unsigned long) ((strokeMm / speedMmS + 2.0) * 1000.0);
+        }
+    }
 
     void begin() {
         if (pinEna == -1) return;
@@ -28,18 +36,15 @@ struct Motor {
         pinMode(pinIn2, OUTPUT);
     }
 
-    unsigned long getSafeTravelTimeMs() {
-        float theoreticalSeconds = strokeMm / speedMmS;
-        return (unsigned long) ((theoreticalSeconds + 2.0) * 1000.0);
-    }
-
     void extend() {
         if (pinEna == -1) return;
         digitalWrite(pinIn1, HIGH);
         digitalWrite(pinIn2, LOW);
         analogWrite(pinEna, 255);
-        delay(getSafeTravelTimeMs());
-        brake();
+
+        travelTimeMs = safeTravelTimeMs;
+        startTimeMs = millis();
+        isMoving = true;
     }
 
     void retract() {
@@ -47,8 +52,10 @@ struct Motor {
         digitalWrite(pinIn1, LOW);
         digitalWrite(pinIn2, HIGH);
         analogWrite(pinEna, 255);
-        delay(getSafetravelTimeMs());
-        brake();
+
+        travelTime = safeTravelTimeMs;
+        startTimeMs = millis();
+        isMoving = true;
     }
 
     void brake() {
@@ -56,36 +63,77 @@ struct Motor {
         digitalWrite(pinIn1, LOW);
         digitalWrite(pinIn2, LOW);
         analogWrite(pinEna, 0);
+        isMoving = false;
+    }
+
+    void update() {
+        if (!isMoving) return;
+        if (millis() - startTimeMs >= travelTimeMs) {
+            brake();
+        }
     }
 };
 
+struct Led {
+    int pin;
+
+    Led() : pin(-1) {}
+
+    Led(int p) : pin(p) {}
+
+    void begin() {
+        if (pin == -1) return;
+        pinMode(pin, OUTPUT);
+    }
+
+    void setBrightness(int level) {
+        if (pin == -1) return;
+        int safeLevel = constrain(level, 0, 255);
+        analogWrite(pin, safeLevel);
+    }
+
+    void on() {
+        setBrightness(255);
+    }
+
+    void off() {
+        setBrightness(0);
+    }
+};
+spot led 12v rgb
 struct Dragon {
-    Motor leftWingTop;
-    Motor leftWingBottom;
+    Motor leftWingTop;      // Opening of the wing
+    Motor leftWingBottom;   // Up/down wing movement
     Motor rightWingTop;
     Motor rightWingBottom;
-    Motor headPan;
-    Motor headLift;
-    Motor headTilt;
+    Motor headPan;  // Left/right rotation
+    Motor headTilt; // Up/down nod
+    Motor headRoll; // Side to side twist (see camera_movements.jpg)
     Motor leftEyelid;
     Motor rightEyelid;
     Motor leftEar;
     Motor rightEar;
     Motor mouth;
 
+    Led leftEye;
+    Led rightEye;
+    Led breath;
+
+    int smokeMachinePin;
+
     Dragon()
-      : leftWingTop     (-1, -1, -1),
-        leftWingBottom  (-1, -1, -1),
-        rightWingTop    (-1, -1, -1),
-        rightWingBottom (-1, -1, -1),
-        headPan         (-1, -1, -1),
-        headLift        (-1, -1, -1),
-        headTilt        (-1, -1, -1),
+      : leftWingTop     (-1, -1, -1, 100.0, 14.0),
+        leftWingBottom  (-1, -1, -1, 150.0, 14.0),
+        rightWingTop    (-1, -1, -1, 100.0, 14.0),
+        rightWingBottom (-1, -1, -1, 150.0, 14.0),
+        headPan         (-1, -1, -1, 100.0, 14.0),
+        headTilt        (-1, -1, -1, 300.0, 14.0),
+        headRoll        (-1, -1, -1, 50.0, 14.0),
         leftEyelid      (-1, -1, -1),
         rightEyelid     (-1, -1, -1),
         leftEar         (-1, -1, -1),
         rightEar        (-1, -1, -1),
-        mouth           (2, 22, 30, 50, 14)
+        mouth           (2, 22, 30, 50.0, 14.0)
     {}
 
     void begin() {
@@ -94,8 +142,8 @@ struct Dragon {
         rightWingTop.begin();
         rightWingBottom.begin();
         headPan.begin();
+        headRoll.begin();
         headTilt.begin();
-        headLift.begin();
         leftEyelid.begin();
         rightEyelid.begin();
         leftEar.begin();
@@ -109,8 +157,8 @@ struct Dragon {
         rightWingTop.brake();
         rightWingBottom.brake();
         headPan.brake();
+        headRoll.brake();
         headTilt.brake();
-        headLift.brake();
         leftEyelid.brake();
         rightEyelid.brake();
         leftEar.brake();
@@ -124,8 +172,8 @@ struct Dragon {
         rightWingTop.retract();
         rightWingBottom.retract();
         headPan.retract();
+        headRoll.retract();
         headTilt.retract();
-        headLift.retract();
         leftEyelid.retract();
         rightEyelid.retract();
         leftEar.retract();
