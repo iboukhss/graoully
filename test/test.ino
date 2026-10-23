@@ -128,9 +128,9 @@ struct Dragon {
     Motor leftWingBottom;   // Up/down wing movement
     Motor rightWingTop;
     Motor rightWingBottom;
-    Motor headPan;  // Left/right rotation
-    Motor headTilt; // Up/down nod
-    Motor headRoll; // Side to side twist (see camera_movements.jpg)
+    Motor headPan;          // Left/right rotation
+    Motor headTilt;         // Up/down nod
+    Motor headRoll;         // Side to side twist (see camera_movements.jpg)
     Motor leftEyelid;
     Motor rightEyelid;
     Motor leftEar;
@@ -191,19 +191,22 @@ struct Dragon {
         }
     }
 
+    void extendAll() {
+        for (int i = 0; i < 12; i++) {
+            allMotors[i]->extend();
+        }
+    }
+
+    void retractAll() {
+        for (int i = 0; i < 12; i++) {
+            allMotors[i]->retract();
+        }
+    }
+
     void stop() {
         for (int i = 0; i < 12; i++) {
             allMotors[i]->brake();
         }
-    }
-
-    void reset() {
-        stop();
-        for (int i = 0; i < 12; i++) {
-            allMotors[i]->retract();
-        }
-        waitUntilFinished();
-        headRoll.extendHalf();
     }
 
     bool isAnyMotorMoving() {
@@ -217,6 +220,13 @@ struct Dragon {
         while (isAnyMotorMoving()) {
             update();
         }
+    }
+
+    void reset() {
+        stop();
+        retractAll();
+        waitUntilFinished();
+        headRoll.extendHalf();
     }
 
     void roar() {
