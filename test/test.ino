@@ -26,7 +26,7 @@ struct Motor {
       : pinEna(ena), pinIn1(in1), pinIn2(in2), strokeMm(stroke), speedMmS(speed)
     {
         if (speedMmS > 0) {
-            theoreticalTravelTimeMs = (unsigned long) ((strokeMm / speedMmS) * 1000.0);
+            theoreticalTravelTimeMs = (strokeMm / speedMmS) * 1000.0;
         }
     }
 
@@ -49,7 +49,9 @@ struct Motor {
     void extend() {
         if (pinEna == -1 || isMoving) return;
 
-        expectedTravelTimeMs = theoreticalTravelTimeMs + 2000;
+        // NOTE(isma): We add a flat 30% safety margin, should be more than enough..
+        // This value needs to be adjusted with real world testing.
+        expectedTravelTimeMs = theoreticalTravelTimeMs * 1.3;
 
         digitalWrite(pinIn1, HIGH);
         digitalWrite(pinIn2, LOW);
@@ -75,7 +77,20 @@ struct Motor {
     void retract() {
         if (pinEna == -1 || isMoving) return;
 
-        expectedTravelTimeMs = theoreticalTravelTimeMs + 2000;
+        expectedTravelTimeMs = theoreticalTravelTimeMs * 1.3;
+
+        digitalWrite(pinIn1, LOW);
+        digitalWrite(pinIn2, HIGH);
+        analogWrite(pinEna, 255);
+
+        startTimeMs = millis();
+        isMoving = true;
+    }
+
+    void retractHalf() {
+        if (pinEna == -1 || isMoving) return;
+
+        expectedTravelTimeMs = theoreticalTravelTimeMs / 2;
 
         digitalWrite(pinIn1, LOW);
         digitalWrite(pinIn2, HIGH);
@@ -121,13 +136,29 @@ struct Led {
     void off() {
         setBrightness(0);
     }
+
+    void fade() {
+        for (int i = 0; i <= 255; i += 5) {
+            setBrightness(i);
+            delay(30);
+        }
+
+        delay(1000);
+
+        for (int i = 255; i >= 0; i -= 5) {
+            setBrightness(i);
+            delay(30);
+        }
+
+        delay(1000);
+    }
 };
 
 struct Dragon {
     Motor leftWingTop;      // Opening of the wing
     Motor leftWingBottom;   // Up/down wing movement
-    Motor rightWingTop;
-    Motor rightWingBottom;
+    Motor rightWingTop;     // See above
+    Motor rightWingBottom;  // See above
     Motor headPan;          // Left/right rotation
     Motor headTilt;         // Up/down nod
     Motor headRoll;         // Side to side twist (see camera_movements.jpg)
@@ -136,9 +167,8 @@ struct Dragon {
     Motor leftEar;
     Motor rightEar;
     Motor mouth;
-
-    Led leftEye;
-    Led rightEye;
+ 
+    Led eyes;
     Led breath;
 
     int smokeMachinePin;
@@ -150,18 +180,17 @@ struct Dragon {
         leftWingBottom  (-1, -1, -1, 150.0, 14.0),
         rightWingTop    (-1, -1, -1, 100.0, 14.0),
         rightWingBottom (-1, -1, -1, 150.0, 14.0),
-        headPan         (-1, -1, -1, 100.0, 14.0),
-        headTilt        (-1, -1, -1, 300.0, 14.0),
-        headRoll        (-1, -1, -1, 50.0, 14.0),
+        headPan         (6, 26, 34, 100.0, 14.0),
+        headTilt        (13, 43, 51, 300.0, 14.0),
+        headRoll        (12, 42, 50, 50.0, 14.0),
         leftEyelid      (-1, -1, -1, 0.0, 0.0),
         rightEyelid     (-1, -1, -1, 0.0, 0.0),
         leftEar         (-1, -1, -1, 0.0, 0.0),
         rightEar        (-1, -1, -1, 0.0, 0.0),
-        mouth           (2, 22, 30, 50.0, 14.0),
+        mouth           (7, 27, 35, 50.0, 14.0),
 
-        leftEye         (-1),
-        rightEye        (-1),
-        breath          (-1),
+        eyes            (2),
+        breath          (8),
 
         smokeMachinePin (-1)
     {
@@ -230,7 +259,24 @@ struct Dragon {
     }
 
     void roar() {
-        // TODO
+        // 0. Mouth closed
+        // 1. Tilt forward
+        // 2. Open eyes
+        // 3. Slight twist to the side
+        // 4. Eyes pulse
+        // 5. Tilt back
+        // 6. Mouth open
+        // 7. Smoke machine
+        // 8. Eyes flash
+    }
+
+    void extendAndRetractOnce(Motor& actuator) {
+        actuator.retract();
+        waitUntilFinished();
+        actuator.extend();
+        waitUntilFinished();
+        actuator.retract();
+        waitUntilFinished();
     }
 };
 
@@ -238,8 +284,12 @@ Dragon graoully;
 
 void setup()
 {
+    Serial.begin(115200);
     graoully.begin();
-    graoully.reset();
+
+    while (1) {
+        graoully.eyes.fade();
+    }
 }
 
 void loop()
