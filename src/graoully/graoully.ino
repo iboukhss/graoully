@@ -1,6 +1,6 @@
 #include <assert.h>
 
-// Motor 1
+// Example motor 1
 
 // Stroke:     50mm
 // Max load:   1000N (100kg)
@@ -9,108 +9,131 @@
 
 // Approx 3.57 seconds to fully extend/retract
 
-struct Motor {
-    int pinEna;
-    int pinIn1;
-    int pinIn2;
-
-    float strokeMm;
-    float speedMmS;
-
-    float currentPositionMm = 0.0f;
-    float targetPositionMm = 0.0f;
-
-    unsigned long travelTimeMs = 0;
-    unsigned long startTimeMs = 0;
-
-    bool isMoving = false;
-
+class Motor {
+public:
     Motor(int ena, int in1, int in2, float stroke, float speed)
-      : pinEna(ena), pinIn1(in1), pinIn2(in2), strokeMm(stroke), speedMmS(speed)
+      : pinEna_(ena), pinIn1_(in1), pinIn2_(in2), strokeMm_(stroke), speedMmS_(speed)
     {
     }
 
     void begin() {
-        if (pinEna == -1) return;
+        if (pinEna_ == -1) return;
 
-        pinMode(pinEna, OUTPUT);
-        pinMode(pinIn1, OUTPUT);
-        pinMode(pinIn2, OUTPUT);
+        pinMode(pinEna_, OUTPUT);
+        pinMode(pinIn1_, OUTPUT);
+        pinMode(pinIn2_, OUTPUT);
     }
 
-    void extend() {
-        if (pinEna == -1) return;
+    void update() {
+        if (pinEna_ == -1 || !isMoving_) return;
 
-        digitalWrite(pinIn1, HIGH);
-        digitalWrite(pinIn2, LOW);
-        analogWrite(pinEna, 255);
+        unsigned long elapsedMs = millis() - startTimeMs_;
 
-        isMoving = true;
+        if (elapsedMs >= travelTimeMs_) {
+            brake();
+        }
     }
 
-    void retract() {
-        if (pinEna == -1) return;
+    bool isMoving() const { return isMoving_; }
 
-        digitalWrite(pinIn1, LOW);
-        digitalWrite(pinIn2, HIGH);
-        analogWrite(pinEna, 255);
+    float getPosition() const {
+        if (!isMoving_) return currentPositionMm_;
 
-        isMoving = true;
+        unsigned long elapsedMs = millis() - startTimeMs_;
+        float distanceTravelledMm = (elapsedMs / 1000.0f) * speedMmS_;
+
+        if (targetPositionMm_ > currentPositionMm_) {
+            return constrain(currentPositionMm_ + distanceTravelledMm, 0.0f, strokeMm_);
+        }
+        else {
+            return constrain(currentPositionMm_ - distanceTravelledMm, 0.0f, strokeMm_);
+        }
     }
 
     void brake() {
-        if (pinEna == -1) return;
+        if (pinEna_ == -1 || !isMoving_) return;
 
-        digitalWrite(pinIn1, LOW);
-        digitalWrite(pinIn2, LOW);
-        analogWrite(pinEna, 0);
+        currentPositionMm_ = getPosition();
 
-        isMoving = false;
+        digitalWrite(pinIn1_, LOW);
+        digitalWrite(pinIn2_, LOW);
+        analogWrite(pinEna_, 0);
+
+        isMoving_ = false;
     }
 
     void home() {
-        if (pinEna == -1) return;
+        if (pinEna_ == -1 || isMoving_) return;
 
-        // Safety margin to make sure the actuators are fully retracted (30% atm).
-        float extraTimeMultiplier = 1.3f;
-     
-        targetPositionMm = 0.0f;
-        travelTimeMs = (strokeMm / speedMmS) * 1000.0f * extraTimeMultiplier;
+        targetPositionMm_ = 0.0f;
+        float fullStrokeTimeMs = (strokeMm_ / speedMmS_) * 1000.0f;
+        travelTimeMs_ = fullStrokeTimeMs * 1.4f;
 
         retract();
-
-        startTimeMs = millis();
     }
 
-    // Must be a value between 0 and 1.0 or undefined behavior
     void moveTo(float position) {
-        if (pinEna == -1 || isMoving) return;
+        if (pinEna_ == -1 || isMoving_) return;
 
-        targetPositionMm = strokeMm * position;
+        targetPositionMm_ = strokeMm_ * constrain(position, 0.0f, 1.0f);
 
-        if (targetPositionMm == currentPositionMm) return;
+        if (targetPositionMm_ == currentPositionMm_) return;
 
-        float distanceMm = abs(targetPositionMm - currentPositionMm);
-        travelTimeMs = (distanceMm / speedMmS) * 1000.0f;
+        float distanceMm = abs(targetPositionMm_ - currentPositionMm_);
+        travelTimeMs_ = (distanceMm / speedMmS_) * 1000.0f;
 
-        if (targetPositionMm > currentPositionMm) {
+        // If we move to an absolute boundary (0.0 or 1.0) then we add a safety
+        // margin proportional to the full stroke length, here 20%
+        if (position <= 0.0f || position >= 1.0f) {
+            float fullStrokeTimeMs = (strokeMm_ / speedMmS_) * 1000.0f;
+            travelTimeMs_ += (fullStrokeTimeMs * 0.2f);
+        }
+
+        if (targetPositionMm_ > currentPositionMm_) {
             extend();
         }
         else {
             retract();
         }
-
-        startTimeMs = millis();
     }
 
-    void update() {
-        if (!isMoving) return;
+private:
+    void extend() {
+        if (pinEna_ == -1 || isMoving_) return;
 
-        if (millis() - startTimeMs >= travelTimeMs) {
-            currentPositionMm = targetPositionMm;
-            brake();
-        }
+        digitalWrite(pinIn1_, HIGH);
+        digitalWrite(pinIn2_, LOW);
+        analogWrite(pinEna_, 255);
+
+        startTimeMs_ = millis();
+        isMoving_ = true;
     }
+
+    void retract() {
+        if (pinEna_ == -1 || isMoving_) return;
+
+        digitalWrite(pinIn1_, LOW);
+        digitalWrite(pinIn2_, HIGH);
+        analogWrite(pinEna_, 255);
+
+        startTimeMs_ = millis();
+        isMoving_ = true;
+    }
+
+    int pinEna_;
+    int pinIn1_;
+    int pinIn2_;
+
+    float strokeMm_;
+    float speedMmS_;
+
+    float currentPositionMm_ = 0.0f;
+    float targetPositionMm_ = 0.0f;
+
+    unsigned long travelTimeMs_ = 0;
+    unsigned long startTimeMs_ = 0;
+
+    bool isMoving_ = false;
 };
 
 struct Led {
@@ -218,7 +241,7 @@ struct Dragon {
 
     bool isAnyMotorMoving() {
         for (int i = 0; i < sizeof(allMotors) / sizeof(allMotors[0]); i++) {
-            if (allMotors[i]->isMoving) return true;
+            if (allMotors[i]->isMoving()) return true;
         }
         return false;
     }
@@ -265,6 +288,16 @@ MotorMapEntry motorMap[] = {
     {"wings_bot", &graoully.wingsBottom}
 };
 
+// List of available serial commands:
+
+// graoully:home
+// graoully:stop
+// graoully:roar
+
+// motor:home
+// motor:stop
+// motor:float_value
+
 bool isMotorCommand(const String& target)
 {
     for (int i = 0; i < sizeof(motorMap) / sizeof(motorMap[0]); i++) {
@@ -291,6 +324,9 @@ void handleMotorCommand(const String& target, const String& action)
 
     if (action == "home") {
         motor->home();
+    }
+    else if (action == "stop") {
+        motor->brake();
     }
     else {
         float val = action.toFloat();
@@ -319,7 +355,7 @@ void handleSerialCommands()
 {
     if (Serial.available() > 0) {
         String input = Serial.readStringUntil('\n');
-
+        
         input.trim();
 
         if (input.length() == 0) return;
