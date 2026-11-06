@@ -11,8 +11,8 @@
 
 class Motor {
 public:
-    Motor(int ena, int in1, int in2, float stroke, float speed)
-      : pinEna_(ena), pinIn1_(in1), pinIn2_(in2), strokeMm_(stroke), speedMmS_(speed)
+    Motor(const char* name, int ena, int in1, int in2, float stroke, float speed)
+      : name_(name), pinEna_(ena), pinIn1_(in1), pinIn2_(in2), strokeMm_(stroke), speedMmS_(speed)
     {
     }
 
@@ -24,15 +24,7 @@ public:
         pinMode(pinIn2_, OUTPUT);
     }
 
-    void update() {
-        if (pinEna_ == -1 || !isMoving_) return;
-
-        unsigned long elapsedMs = millis() - startTimeMs_;
-
-        if (elapsedMs >= travelTimeMs_) {
-            brake();
-        }
-    }
+    const char* getName() const { return name_; }
 
     bool isMoving() const { return isMoving_; }
 
@@ -63,7 +55,12 @@ public:
     }
 
     void home() {
-        if (pinEna_ == -1 || isMoving_) return;
+        if (pinEna_ == -1) return;
+
+        if (isMoving_) {
+            Serial.println(F("WARNING: Motor is busy. 'home' command ignored."));
+            return;
+        }
 
         targetPositionMm_ = 0.0f;
         float fullStrokeTimeMs = (strokeMm_ / speedMmS_) * 1000.0f;
@@ -73,9 +70,14 @@ public:
     }
 
     void moveTo(float position) {
-        if (pinEna_ == -1 || isMoving_) return;
+        if (pinEna_ == -1) return;
 
-        targetPositionMm_ = strokeMm_ * constrain(position, 0.0f, 1.0f);
+        if (isMoving_) {
+            Serial.println(F("WARNING: Motor is busy. 'moveTo' command ignored."));
+            return;
+        }
+
+        targetPositionMm_ = strokeMm_ * position;
 
         if (targetPositionMm_ == currentPositionMm_) return;
 
@@ -94,6 +96,16 @@ public:
         }
         else {
             retract();
+        }
+    }
+
+    void update() {
+        if (pinEna_ == -1 || !isMoving_) return;
+
+        unsigned long elapsedMs = millis() - startTimeMs_;
+
+        if (elapsedMs >= travelTimeMs_) {
+            brake();
         }
     }
 
@@ -119,6 +131,8 @@ private:
         startTimeMs_ = millis();
         isMoving_ = true;
     }
+
+    const char* name_;
 
     int pinEna_;
     int pinIn1_;
@@ -197,16 +211,16 @@ struct Dragon {
     Motor* allMotors[8];
 
     Dragon()
-      : wingsTop        (-1, -1, -1, 100.0, 14.0),
-        wingsBottom     (-1, -1, -1, 150.0, 14.0),
-        headPan         (6, 26, 34, 150.0, 14.0),   // Counting 18.3 seconds for extension
-        headTilt        (13, 43, 51, 300.0, 14.0),
-        headRoll        (12, 42, 50, 50.0, 14.0),
-        eyelids         (-1, -1, -1, 0.0, 0.0),
-        ears            (-1, -1, -1, 0.0, 0.0),
-        mouth           (7, 27, 35, 50.0, 14.0),
+      : wingsTop        ("wings_top", -1, -1, -1, 100.0, 14.0),
+        wingsBottom     ("wings_bot", -1, -1, -1, 150.0, 14.0),
+        headPan         ("pan",        8, 38, 46, 100.0, 5.5),  // Needs adjustment!
+        headTilt        ("tilt",       2, 22, 30, 300.0, 14.0),
+        headRoll        ("roll",       9, 39, 47, 50.0, 14.0),
+        eyelids         ("eyelids",    4, 24, 32, 50.0, 14.0),  // This is just a guess
+        ears            ("ears",      10, 40, 48, 50.0, 14.0),  // Also a guess
+        mouth           ("mouth",      3, 23, 31, 50.0, 14.0),
 
-        eyes            (2),
+        eyes            (A8),
         breath          (8),
 
         smokeMachinePin (-1)
@@ -272,22 +286,6 @@ struct Dragon {
 
 Dragon graoully;
 
-struct MotorMapEntry {
-    const char* name;
-    Motor* motor;
-};
-
-MotorMapEntry motorMap[] = {
-    {"mouth",     &graoully.mouth},
-    {"tilt",      &graoully.headTilt},
-    {"pan",       &graoully.headPan},
-    {"roll",      &graoully.headRoll},
-    {"ears",      &graoully.ears},
-    {"eyelids",   &graoully.eyelids},
-    {"wings_top", &graoully.wingsTop},
-    {"wings_bot", &graoully.wingsBottom}
-};
-
 // List of available serial commands:
 
 // graoully:home
@@ -300,8 +298,8 @@ MotorMapEntry motorMap[] = {
 
 bool isMotorCommand(const String& target)
 {
-    for (int i = 0; i < sizeof(motorMap) / sizeof(motorMap[0]); i++) {
-        if (target == motorMap[i].name) {
+    for (int i = 0; i < sizeof(graoully.allMotors) / sizeof(graoully.allMotors[0]); i++) {
+        if (target == graoully.allMotors[i]->getName()) {
             return true;
         }
     }
@@ -310,9 +308,9 @@ bool isMotorCommand(const String& target)
 
 Motor* getMotor(const String& target)
 {
-    for (int i = 0; i < sizeof(motorMap) / sizeof(motorMap[0]); i++) {
-        if (target == motorMap[i].name) {
-            return motorMap[i].motor;
+    for (int i = 0; i < sizeof(graoully.allMotors) / sizeof(graoully.allMotors[0]); i++) {
+        if (target == graoully.allMotors[i]->getName()) {
+            return graoully.allMotors[i];
         }
     }
     return nullptr;
@@ -389,6 +387,7 @@ void setup()
 {
     Serial.begin(115200);
     graoully.begin();
+    graoully.eyes.on();
 }
 
 void loop()
