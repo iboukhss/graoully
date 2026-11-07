@@ -14,6 +14,8 @@ public:
     Motor(const char* name, int ena, int in1, int in2, float stroke, float speed)
       : name_(name), pinEna_(ena), pinIn1_(in1), pinIn2_(in2), strokeMm_(stroke), speedMmS_(speed)
     {
+        // Let's assume we start dead center (this doesn't achieve anything)
+        startPositionMm_ = stroke * 0.5f;
     }
 
     void begin() {
@@ -24,34 +26,35 @@ public:
         pinMode(pinIn2_, OUTPUT);
     }
 
-    const char* getName() const { return name_; }
-
-    bool isMoving() const { return isMoving_; }
-
-    float getPosition() const {
-        if (!isMoving_) return currentPositionMm_;
-
-        unsigned long elapsedMs = millis() - startTimeMs_;
-        float distanceTravelledMm = (elapsedMs / 1000.0f) * speedMmS_;
-
-        if (targetPositionMm_ > currentPositionMm_) {
-            return constrain(currentPositionMm_ + distanceTravelledMm, 0.0f, strokeMm_);
-        }
-        else {
-            return constrain(currentPositionMm_ - distanceTravelledMm, 0.0f, strokeMm_);
-        }
-    }
-
-    void brake() {
+    void stop() {
         if (pinEna_ == -1 || !isMoving_) return;
-
-        currentPositionMm_ = getPosition();
 
         digitalWrite(pinIn1_, LOW);
         digitalWrite(pinIn2_, LOW);
         analogWrite(pinEna_, 0);
 
         isMoving_ = false;
+    }
+
+    void update() {
+        if (pinEna_ == -1 || !isMoving_) return;
+
+        unsigned long elapsedMs = millis() - startTimeMs_;
+
+        if (elapsedMs >= travelTimeMs_) {
+            stop();
+            currentPositionMm_ = constrain(targetPositionMm_, 0.0f, strokeMm_);
+            return;
+        }
+
+        float distanceTravelledMm = (elapsedMs / 1000.0f) * speedMmS_;
+
+        if (targetPositionMm_ > startPositionMm_) {
+            currentPositionMm_ = startPositionMm_ + distanceTravelledMm;
+        }
+        else {
+            currentPositionMm_ = startPositionMm_ - distanceTravelledMm;
+        }
     }
 
     void home() {
@@ -63,6 +66,7 @@ public:
         }
 
         targetPositionMm_ = 0.0f;
+
         float fullStrokeTimeMs = (strokeMm_ / speedMmS_) * 1000.0f;
         travelTimeMs_ = fullStrokeTimeMs * 1.4f;
 
@@ -79,9 +83,11 @@ public:
 
         targetPositionMm_ = strokeMm_ * position;
 
-        if (targetPositionMm_ == currentPositionMm_) return;
-
         float distanceMm = abs(targetPositionMm_ - currentPositionMm_);
+
+        // 0.1mm tolerance to avoid wearing dowm the motor for nothing
+        if (distanceMm < 0.1f) return;
+
         travelTimeMs_ = (distanceMm / speedMmS_) * 1000.0f;
 
         // If we move to an absolute boundary (0.0 or 1.0) then we add a safety
@@ -99,15 +105,9 @@ public:
         }
     }
 
-    void update() {
-        if (pinEna_ == -1 || !isMoving_) return;
-
-        unsigned long elapsedMs = millis() - startTimeMs_;
-
-        if (elapsedMs >= travelTimeMs_) {
-            brake();
-        }
-    }
+    const char* getName() const { return name_; }
+    float getPosition() const { return currentPositionMm_; }
+    bool isMoving() const { return isMoving_; }
 
 private:
     void extend() {
@@ -118,6 +118,7 @@ private:
         analogWrite(pinEna_, 255);
 
         startTimeMs_ = millis();
+        startPositionMm_ = currentPositionMm_;
         isMoving_ = true;
     }
 
@@ -129,6 +130,7 @@ private:
         analogWrite(pinEna_, 255);
 
         startTimeMs_ = millis();
+        startPositionMm_ = currentPositionMm_;
         isMoving_ = true;
     }
 
@@ -143,6 +145,7 @@ private:
 
     float currentPositionMm_ = 0.0f;
     float targetPositionMm_ = 0.0f;
+    float startPositionMm_ = 0.0f;
 
     unsigned long travelTimeMs_ = 0;
     unsigned long startTimeMs_ = 0;
@@ -150,22 +153,20 @@ private:
     bool isMoving_ = false;
 };
 
-struct Led {
-    int pin;
-
-    Led(int p) : pin(p) {}
+class Led {
+public:
+    Led(const char* name, int p) : name_(name), pin_(p) {}
 
     void begin() {
-        if (pin == -1) return;
+        if (pin_ == -1) return;
 
-        pinMode(pin, OUTPUT);
+        pinMode(pin_, OUTPUT);
     }
 
     void setBrightness(int level) {
-        if (pin == -1) return;
+        if (pin_ == -1) return;
 
-        int safeLevel = constrain(level, 0, 255);
-        analogWrite(pin, safeLevel);
+        analogWrite(pin_, level);
     }
 
     void on() {
@@ -176,21 +177,11 @@ struct Led {
         setBrightness(0);
     }
 
-    void fade() {
-        for (int i = 0; i <= 255; i += 5) {
-            setBrightness(i);
-            delay(30);
-        }
+    const char* getName() const { return name_; }
 
-        delay(1000);
-
-        for (int i = 255; i >= 0; i -= 5) {
-            setBrightness(i);
-            delay(30);
-        }
-
-        delay(1000);
-    }
+private:
+    const char* name_;
+    int pin_;
 };
 
 struct Dragon {
@@ -209,6 +200,7 @@ struct Dragon {
     int smokeMachinePin;
 
     Motor* allMotors[8];
+    Led*   allLeds[2];
 
     Dragon()
       : wingsTop        ("wings_top", -1, -1, -1, 100.0, 14.0),
@@ -220,8 +212,8 @@ struct Dragon {
         ears            ("ears",      10, 40, 48, 50.0, 14.0),  // Also a guess
         mouth           ("mouth",      3, 23, 31, 50.0, 14.0),
 
-        eyes            (A8),
-        breath          (8),
+        eyes            ("eyes",   A8),
+        breath          ("breath", 8),
 
         smokeMachinePin (-1)
     {
@@ -233,6 +225,9 @@ struct Dragon {
         allMotors[5] = &eyelids;
         allMotors[6] = &ears;
         allMotors[7] = &mouth;
+
+        allLeds[0] = &eyes;
+        allLeds[1] = &breath;
     }
 
     void begin() {
@@ -249,7 +244,7 @@ struct Dragon {
 
     void stop() {
         for (int i = 0; i < sizeof(allMotors) / sizeof(allMotors[0]); i++) {
-            allMotors[i]->brake();
+            allMotors[i]->stop();
         }
     }
 
@@ -296,6 +291,49 @@ Dragon graoully;
 // motor:stop
 // motor:float_value
 
+// led:on
+// led:off
+// led:u8_value
+
+bool isLedCommand(const String& target)
+{
+    for (int i = 0; i < sizeof(graoully.allLeds) / sizeof(graoully.allLeds[0]); i++) {
+        if (target == graoully.allLeds[i]->getName()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+Led* getLed(const String& target)
+{
+    for (int i = 0; i < sizeof(graoully.allLeds) / sizeof(graoully.allLeds[0]); i++) {
+        if (target == graoully.allLeds[i]->getName()) {
+            return graoully.allLeds[i];
+        }
+    }
+    return nullptr;
+}
+
+void handleLedCommand(const String& target, const String& action)
+{
+    Led* led = getLed(target);
+
+    if (action == "on") {
+        led->on();
+    }
+    else if (action == "off") {
+        led->off();
+    }
+
+    // TODO: Add brightness control action
+
+    else {
+        Serial.print(F("ERROR: Unknown LED action -> "));
+        Serial.println(action);
+    }
+}
+
 bool isMotorCommand(const String& target)
 {
     for (int i = 0; i < sizeof(graoully.allMotors) / sizeof(graoully.allMotors[0]); i++) {
@@ -324,7 +362,7 @@ void handleMotorCommand(const String& target, const String& action)
         motor->home();
     }
     else if (action == "stop") {
-        motor->brake();
+        motor->stop();
     }
     else {
         float val = action.toFloat();
@@ -344,7 +382,7 @@ void handleGraoullyCommand(const String& action)
         graoully.roar();
     }
     else {
-        Serial.print("ERROR: Unknown Graoully action -> ");
+        Serial.print(F("ERROR: Unknown Graoully action -> "));
         Serial.println(action);
     }
 }
