@@ -26,35 +26,16 @@ public:
         pinMode(pinIn2_, OUTPUT);
     }
 
-    void stop() {
-        if (pinEna_ == -1 || !isMoving_) return;
-
-        digitalWrite(pinIn1_, LOW);
-        digitalWrite(pinIn2_, LOW);
-        analogWrite(pinEna_, 0);
-
-        isMoving_ = false;
-    }
-
     void update() {
         if (pinEna_ == -1 || !isMoving_) return;
 
-        unsigned long elapsedMs = millis() - startTimeMs_;
+        unsigned long elapsedTimeMs = millis() - startTimeMs_;
 
-        if (elapsedMs >= travelTimeMs_) {
-            stop();
-            currentPositionMm_ = constrain(targetPositionMm_, 0.0f, strokeMm_);
-            return;
+        if (elapsedTimeMs >= travelTimeMs_) {
+            brake();
         }
 
-        float distanceTravelledMm = (elapsedMs / 1000.0f) * speedMmS_;
-
-        if (targetPositionMm_ > startPositionMm_) {
-            currentPositionMm_ = startPositionMm_ + distanceTravelledMm;
-        }
-        else {
-            currentPositionMm_ = startPositionMm_ - distanceTravelledMm;
-        }
+        updateCurrentPosition();
     }
 
     void home() {
@@ -77,8 +58,7 @@ public:
         if (pinEna_ == -1) return;
 
         if (isMoving_) {
-            Serial.println(F("WARNING: Motor is busy. 'moveTo' command ignored."));
-            return;
+            updateCurrentPosition();
         }
 
         targetPositionMm_ = strokeMm_ * position;
@@ -94,7 +74,7 @@ public:
         // margin proportional to the full stroke length, here 20%
         if (position <= 0.0f || position >= 1.0f) {
             float fullStrokeTimeMs = (strokeMm_ / speedMmS_) * 1000.0f;
-            travelTimeMs_ += (fullStrokeTimeMs * 0.2f);
+            travelTimeMs_ += (fullStrokeTimeMs * 0.05f);
         }
 
         if (targetPositionMm_ > currentPositionMm_) {
@@ -105,13 +85,20 @@ public:
         }
     }
 
+    void stop() {
+        if (pinEna_ == -1 || !isMoving_) return;
+
+        brake();
+        updateCurrentPosition();
+    }
+
     const char* getName() const { return name_; }
     float getPosition() const { return currentPositionMm_; }
     bool isMoving() const { return isMoving_; }
 
 private:
     void extend() {
-        if (pinEna_ == -1 || isMoving_) return;
+        if (pinEna_ == -1) return;
 
         digitalWrite(pinIn1_, HIGH);
         digitalWrite(pinIn2_, LOW);
@@ -123,7 +110,7 @@ private:
     }
 
     void retract() {
-        if (pinEna_ == -1 || isMoving_) return;
+        if (pinEna_ == -1) return;
 
         digitalWrite(pinIn1_, LOW);
         digitalWrite(pinIn2_, HIGH);
@@ -132,6 +119,28 @@ private:
         startTimeMs_ = millis();
         startPositionMm_ = currentPositionMm_;
         isMoving_ = true;
+    }
+
+    void brake() {
+        if (pinEna_ == -1 || !isMoving_) return;
+
+        digitalWrite(pinIn1_, LOW);
+        digitalWrite(pinIn2_, LOW);
+        analogWrite(pinEna_, 0);
+
+        isMoving_ = false;
+    }
+
+    void updateCurrentPosition() {
+        unsigned long elapsedTimeMs = millis() - startTimeMs_;
+        float distanceTravelledMm = (elapsedTimeMs / 1000.0f) * speedMmS_;
+
+        if (targetPositionMm_ > startPositionMm_) {
+            currentPositionMm_ = constrain(startPositionMm_ + distanceTravelledMm, 0.0f, strokeMm_);
+        }
+        else {
+            currentPositionMm_ = constrain(startPositionMm_ - distanceTravelledMm, 0.0f, strokeMm_);
+        }
     }
 
     const char* name_;
@@ -143,9 +152,9 @@ private:
     float strokeMm_;
     float speedMmS_;
 
-    float currentPositionMm_ = 0.0f;
     float targetPositionMm_ = 0.0f;
     float startPositionMm_ = 0.0f;
+    float currentPositionMm_ = 0.0f;
 
     unsigned long travelTimeMs_ = 0;
     unsigned long startTimeMs_ = 0;
@@ -196,26 +205,24 @@ struct Dragon {
  
     Led eyes;
     Led breath;
-
-    int smokeMachinePin;
+    Led smoke;  // Trigger for 2 or 3 seconds max
 
     Motor* allMotors[8];
-    Led*   allLeds[2];
+    Led*   allLeds[3];
 
     Dragon()
       : wingsTop        ("wings_top", -1, -1, -1, 100.0, 14.0),
         wingsBottom     ("wings_bot", -1, -1, -1, 150.0, 14.0),
         headPan         ("pan",        8, 38, 46, 100.0, 5.5),  // Needs adjustment!
-        headTilt        ("tilt",       2, 22, 30, 300.0, 14.0),
+        headTilt        ("tilt",       2, 30, 22, 300.0, 14.0),
         headRoll        ("roll",       9, 39, 47, 50.0, 14.0),
         eyelids         ("eyelids",    4, 24, 32, 50.0, 14.0),  // This is just a guess
         ears            ("ears",      10, 40, 48, 50.0, 14.0),  // Also a guess
-        mouth           ("mouth",      3, 23, 31, 50.0, 14.0),
+        mouth           ("mouth",      3, 31, 23, 50.0, 14.0),
 
         eyes            ("eyes",   A8),
-        breath          ("breath", 8),
-
-        smokeMachinePin (-1)
+        breath          ("breath", -1),
+        smoke           ("smoke",  A0)
     {
         allMotors[0] = &wingsTop;
         allMotors[1] = &wingsBottom;
@@ -228,6 +235,7 @@ struct Dragon {
 
         allLeds[0] = &eyes;
         allLeds[1] = &breath;
+        allLeds[2] = &smoke;
     }
 
     void begin() {
@@ -412,6 +420,9 @@ void handleSerialCommands()
             }
             else if (isMotorCommand(target)) {
                 handleMotorCommand(target, action);
+            }
+            else if (isLedCommand(target)) {
+                handleLedCommand(target, action);
             }
             else {
                 Serial.print("ERROR: Unknown target -> ");
