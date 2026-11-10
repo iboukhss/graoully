@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <cassert>
 
 // Example motor 1
 
@@ -395,6 +395,23 @@ void handleGraoullyCommand(const String& action)
     }
 }
 
+void executeCommand(const String& target, const String& action)
+{
+    if (target == "graoully") {
+        handleGraoullyCommand(action);
+    }
+    else if (isMotorCommand(target)) {
+        handleMotorCommand(target, action);
+    }
+    else if (isLedCommand(target)) {
+        handleLedCommand(target, action);
+    }
+    else {
+        Serial.print(F("ERROR: Unknown target -> "));
+        Serial.println(target);
+    }
+}
+
 void handleSerialCommands()
 {
     if (Serial.available() > 0) {
@@ -410,27 +427,141 @@ void handleSerialCommands()
             String target = input.substring(0, separatorIndex);
             String action = input.substring(separatorIndex + 1);
 
-            Serial.print("Received -> ");
+            Serial.print(F("Received -> "));
             Serial.print(target);
-            Serial.print(" : ");
+            Serial.print(F(" : "));
             Serial.println(action);
 
-            if (target == "graoully") {
-                handleGraoullyCommand(action);
-            }
-            else if (isMotorCommand(target)) {
-                handleMotorCommand(target, action);
-            }
-            else if (isLedCommand(target)) {
-                handleLedCommand(target, action);
-            }
-            else {
-                Serial.print("ERROR: Unknown target -> ");
-                Serial.println(target);
-            }
+            executeCommand(target, action);
         }
     }
 }
+
+struct SequenceItem {
+    unsigned long offsetMs;
+    char target[16];
+    char action[16];
+};
+
+constexpr int MAX_SHOW_SEQUENCE_CAPACITY = 32;
+
+class ShowSequence {
+public:
+    ShowSequence(const String& name) : name_(name) {}
+
+    void append(unsigned long offset, const String& target, const String& action) {
+        if (count_ >= MAX_SHOW_SEQUENCE_CAPACITY) {
+            Serial.println(F("WARNING: Maximum  show sequence capacity reached!"));
+            return;
+        }
+
+        buffer_[count_].offsetMs = offset;
+
+        target.toCharArray(buffer_[count_].target, sizeof(buffer_[count_].target));
+        action.toCharArray(buffer_[count_].action, sizeof(buffer_[count_].action));
+
+        count_++;
+    }
+
+    const String& getName() const { return name_; }
+    int getCount() const { return count_; }
+    const SequenceItem& getItemAt(int index) const { return buffer_[index]; }
+
+private:
+    String name_;
+
+    SequenceItem buffer_[MAX_SHOW_SEQUENCE_CAPACITY];
+    int count_ = 0;
+};
+
+enum class QueueState {
+    STOPPED,
+    PLAYING,
+    PAUSED
+};
+
+class SequencePlayer {
+public:
+    void load(ShowSequence& sequence) {
+        if (sequence.getCount() == 0) {
+            Serial.println(F("ERROR: Sequence is empty!"));
+            return;
+        }
+
+        currentSequence_ = &sequence;
+        currentIndex_ = 0;/home/ismail/projects/graoully/src/graoully/graoully.ino:1:10: fatal error: cassert: No such file or directory
+ #include <cassert>
+          ^~~~~~~~~
+compilation terminated.
+exit status 1
+
+Compilation error: cassert: No such file or directory
+        state_ = QueueState::STOPPED;
+
+        Serial.print(F("Loaded sequence: "));
+        Serial.println(sequence.getName());
+    }
+
+    // Should play() also resume?
+
+    void play() {
+        if (!currentSequence_) {
+            Serial.println(F("ERROR: No sequence loaded!"));
+            return;
+        }
+
+        startTimeMs_ = millis();
+        currentIndex_ = 0;
+        state_ = QueueState::PLAYING;
+
+        Serial.print(F("Currently playing: "));
+        Serial.println(currentSequence_->getName());
+    }
+
+    void pause() {
+        if (state_ != QueueState::PLAYING) return;
+
+        state_ = QueueState::PAUSED;
+
+        Serial.println(F("Sequence paused."));
+    }
+
+    void stop() {
+        state_ = QueueState::STOPPED;
+        currentIndex_ = 0;
+        currentSequence_ = nullptr;
+
+        Serial.println(F("Sequence stopped."));
+    }
+
+    void update() {
+        if (state_ != QueueState::PLAYING) return;
+
+        assert(currentSequence_ && "currentSequence_ cannot be null!");
+
+        const SequenceItem& item = currentSequence_->getItemAt(currentIndex_);
+        unsigned long targetTriggerTimeMs = startTimeMs_ + item.offsetMs;
+
+        if (millis() >= targetTriggerTimeMs) {
+            executeCommand(item.target, item.action);
+            currentIndex_++;
+        }
+
+        if (currentIndex_ >= currentSequence_->getCount()) {
+            Serial.println(F("Sequence finished playing. Stopping now."));
+            stop();
+        }
+    }
+
+    QueueState getState() const { return state_; }
+
+private:
+    ShowSequence* currentSequence_ = nullptr;
+    int currentIndex_ = 0;
+    unsigned long startTimeMs_ = 0;
+
+    QueueState state_ = QueueState::STOPPED;
+};
 
 void setup()
 {
