@@ -1,4 +1,4 @@
-#include <cassert>
+#include <assert.h>
 
 // Example motor 1
 
@@ -489,13 +489,7 @@ public:
         }
 
         currentSequence_ = &sequence;
-        currentIndex_ = 0;/home/ismail/projects/graoully/src/graoully/graoully.ino:1:10: fatal error: cassert: No such file or directory
- #include <cassert>
-          ^~~~~~~~~
-compilation terminated.
-exit status 1
-
-Compilation error: cassert: No such file or directory
+        currentIndex_ = 0;
         state_ = QueueState::STOPPED;
 
         Serial.print(F("Loaded sequence: "));
