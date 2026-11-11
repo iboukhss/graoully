@@ -15,8 +15,6 @@ public:
     Motor(const char* name, int ena, int in1, int in2, float stroke, float speed)
       : name_(name), pinEna_(ena), pinIn1_(in1), pinIn2_(in2), strokeMm_(stroke), speedMmS_(speed)
     {
-        // Let's assume we start dead center (this doesn't achieve anything)
-        startPositionMm_ = stroke * 0.5f;
     }
 
     void begin() {
@@ -47,6 +45,8 @@ public:
             return;
         }
 
+        currentPositionMm_ = strokeMm_;
+        startPositionMm_ = strokeMm_;
         targetPositionMm_ = 0.0f;
 
         float fullStrokeTimeMs = (strokeMm_ / speedMmS_) * 1000.0f;
@@ -93,7 +93,20 @@ public:
         updateCurrentPosition();
     }
 
+    void printToSerial() const {
+        Serial.print(F("Motor: "));
+        Serial.print(name_);
+        Serial.print(F(", Stroke: "));
+        Serial.print(strokeMm_);
+        Serial.print(F(", Position: "));
+        Serial.print(currentPositionMm_);
+        Serial.print(F("mm")),
+        Serial.print(F(", Moving: "));
+        Serial.println(isMoving_ ? F("YES") : F("NO"));
+    }
+
     const char* getName() const { return name_; }
+    float getStroke() const { return strokeMm_; }
     float getPosition() const { return currentPositionMm_; }
     bool isMoving() const { return isMoving_; }
 
@@ -153,9 +166,9 @@ private:
     float strokeMm_;
     float speedMmS_;
 
-    float targetPositionMm_ = 0.0f;
-    float startPositionMm_ = 0.0f;
-    float currentPositionMm_ = 0.0f;
+    float targetPositionMm_ = -1.0f;
+    float startPositionMm_ = -1.0f;
+    float currentPositionMm_ = -1.0f;
 
     unsigned long travelTimeMs_ = 0;
     unsigned long startTimeMs_ = 0;

@@ -1,6 +1,8 @@
 #ifndef SHOW_H
 #define SHOW_H
 
+#include <assert.h>
+
 extern void executeCommand(const String& target, const String& action);
 
 struct SequenceItem {
@@ -15,14 +17,14 @@ struct ShowPreset {
     int count;
 };
 
-constexpr int MAX_SHOW_SEQUENCE_CAPACITY = 32;
+constexpr int kMaxShowSequenceCapacity = 32;
 
 class ShowSequence {
 public:
     ShowSequence(const String& name) : name_(name) {}
 
     void append(unsigned long offset, const String& target, const String& action) {
-        if (count_ >= MAX_SHOW_SEQUENCE_CAPACITY) {
+        if (count_ >= kMaxShowSequenceCapacity) {
             Serial.println(F("WARNING: Maximum show sequence capacity reached!"));
             return;
         }
@@ -43,15 +45,33 @@ public:
 
         name_ = localPreset.name;
 
-        for (int i = 0; i < localPreset.count && i < MAX_SHOW_SEQUENCE_CAPACITY; i++) {
+        for (int i = 0; i < localPreset.count && i < kMaxShowSequenceCapacity; i++) {
             memcpy_P(&buffer_[i], &localPreset.data[i], sizeof(localPreset.data[i]));
             count_++;
         }
 
-        Serial.print(F("Loaded preset '"));
+        Serial.print(F("Loaded preset: "));
         Serial.print(name_);
-        Serial.print(F("'. Items: "));
+        Serial.print(F(", Items: "));
         Serial.println(count_);
+    }
+
+    void printToSerial() const {
+        Serial.print(F("--- Sequence: "));
+        Serial.print(name_);
+        Serial.print(F(", Items: "));
+        Serial.print(count_);
+        Serial.println(F(" ---"));
+
+        for (int i = 0; i < count_; i++) {
+            Serial.print(buffer_[i].offsetMs);
+            Serial.print(F(","));
+            Serial.print(buffer_[i].target);
+            Serial.print(F(","));
+            Serial.println(buffer_[i].action);
+        }
+
+        Serial.println(F("-------------------------------------"));
     }
 
     const String& getName() const { return name_; }
@@ -62,7 +82,7 @@ public:
 private:
     String name_;
 
-    SequenceItem buffer_[MAX_SHOW_SEQUENCE_CAPACITY];
+    SequenceItem buffer_[kMaxShowSequenceCapacity];
     int count_ = 0;
 };
 
