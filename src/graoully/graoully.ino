@@ -3,33 +3,39 @@
 
 Dragon graoully;
 
+// This sequence is best used when starting at a neutral position, ie. head tilt
+// of 0.5 or higher
 const SequenceItem PROGMEM kSleepSeqData[] = {
-    { 0,    "breath",   "off" },
-    { 0,    "pan",      "0.5" },
-    { 0,    "roll",     "0.5" },
-    { 2000, "tilt",     "0.1" },
-    { 8000, "pan",      "0.1"},
-    { 12000, "mouth",   "0.0" },
-    { 12000, "eyelids", "0.5" },
-    { 14000, "eyes",    "off" },
-    { 14000, "eyelids", "0.0" },
-    { 16000, "ears",    "0.0" },
-    { 20000, "mouth",   "0.1"}
+    { 0,     "breath",  "off" },
+    { 0,     "pan",     "0.5" },
+    { 0,     "roll",    "0.5" },
+    { 2000,  "tilt",    "0.1" },
+    { 8000,  "pan",     "0.1" },
+    { 10000, "eyelids", "0.0" },
+    { 10000, "mouth",   "0.0" },
+    { 13000, "eyes",    "off" },
+    { 17000, "ears",    "0.0" },
+    { 22000, "mouth",   "0.1" }
 };
 
 constexpr int kSleepSeqCount = sizeof(kSleepSeqData) / sizeof(kSleepSeqData[0]);
 
+// This sequence works really well when the dragon is already sleeping
 const SequenceItem PROGMEM kAlertSeqData[] = {
-    { 0,     "ears",   "0.5" },
-    { 3000,  "eyes",   "on" },
-    { 3000,  "breath", "on" },
-    { 4000,  "pan",    "0.4"},
-    { 6000,  "mouth",  "0.2" },
-    { 7000,  "smoke",  "3000" },
-    { 11000, "eyes",   "off" },
-    { 11000, "mouth",  "0.0" },
-    { 13000, "pan",    "0.1" },
-    { 17000, "ears",   "0.0" }
+    { 0,     "ears",    "0.5"  },
+    { 4000,  "eyes",    "on"   },
+    { 4000,  "breath",  "on"   },
+    { 6000,  "eyelids", "0.3"  },
+    { 10000, "pan",     "0.5"  },
+    { 20000, "mouth",   "0.3"  },
+    { 21000, "smoke",   "3000" },
+    { 26000, "mouth",   "0.0"  },
+    { 30000, "pan",     "0.1"  },
+    { 32000, "eyelids", "0.0"  },
+    { 35000, "eyes",    "off"  },
+    { 35000, "breath",  "off"  },
+    { 40000, "ears",    "0.0"  },
+    { 45000, "mouth",   "0.1"  }
 };
 
 constexpr int kAlertSeqCount = sizeof(kAlertSeqData) / sizeof(kAlertSeqData[0]);
