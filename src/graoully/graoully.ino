@@ -1,293 +1,26 @@
 #include <assert.h>
 
-// Example motor 1
-
-// Stroke:     50mm
-// Max load:   1000N (100kg)
-// Speed:      14mm/s
-// Duty cycle: 10%
-
-// Approx 3.57 seconds to fully extend/retract
-
-class Motor {
-public:
-    Motor(const char* name, int ena, int in1, int in2, float stroke, float speed)
-      : name_(name), pinEna_(ena), pinIn1_(in1), pinIn2_(in2), strokeMm_(stroke), speedMmS_(speed)
-    {
-        // Let's assume we start dead center (this doesn't achieve anything)
-        startPositionMm_ = stroke * 0.5f;
-    }
-
-    void begin() {
-        if (pinEna_ == -1) return;
-
-        pinMode(pinEna_, OUTPUT);
-        pinMode(pinIn1_, OUTPUT);
-        pinMode(pinIn2_, OUTPUT);
-    }
-
-    void update() {
-        if (pinEna_ == -1 || !isMoving_) return;
-
-        unsigned long elapsedTimeMs = millis() - startTimeMs_;
-
-        if (elapsedTimeMs >= travelTimeMs_) {
-            brake();
-        }
-
-        updateCurrentPosition();
-    }
-
-    void home() {
-        if (pinEna_ == -1) return;
-
-        if (isMoving_) {
-            Serial.println(F("WARNING: Motor is busy. 'home' command ignored."));
-            return;
-        }
-
-        targetPositionMm_ = 0.0f;
-
-        float fullStrokeTimeMs = (strokeMm_ / speedMmS_) * 1000.0f;
-        travelTimeMs_ = fullStrokeTimeMs * 1.4f;
-
-        retract();
-    }
-
-    void moveTo(float position) {
-        if (pinEna_ == -1) return;
-
-        if (isMoving_) {
-            updateCurrentPosition();
-        }
-
-        targetPositionMm_ = strokeMm_ * position;
-
-        float distanceMm = abs(targetPositionMm_ - currentPositionMm_);
-
-        // 0.1mm tolerance to avoid wearing dowm the motor for nothing
-        if (distanceMm < 0.1f) return;
-
-        travelTimeMs_ = (distanceMm / speedMmS_) * 1000.0f;
-
-        // If we move to an absolute boundary (0.0 or 1.0) then we add a safety
-        // margin proportional to the full stroke length, here 20%
-        if (position <= 0.0f || position >= 1.0f) {
-            float fullStrokeTimeMs = (strokeMm_ / speedMmS_) * 1000.0f;
-            travelTimeMs_ += (fullStrokeTimeMs * 0.05f);
-        }
-
-        if (targetPositionMm_ > currentPositionMm_) {
-            extend();
-        }
-        else {
-            retract();
-        }
-    }
-
-    void stop() {
-        if (pinEna_ == -1 || !isMoving_) return;
-
-        brake();
-        updateCurrentPosition();
-    }
-
-    const char* getName() const { return name_; }
-    float getPosition() const { return currentPositionMm_; }
-    bool isMoving() const { return isMoving_; }
-
-private:
-    void extend() {
-        if (pinEna_ == -1) return;
-
-        digitalWrite(pinIn1_, HIGH);
-        digitalWrite(pinIn2_, LOW);
-        analogWrite(pinEna_, 255);
-
-        startTimeMs_ = millis();
-        startPositionMm_ = currentPositionMm_;
-        isMoving_ = true;
-    }
-
-    void retract() {
-        if (pinEna_ == -1) return;
-
-        digitalWrite(pinIn1_, LOW);
-        digitalWrite(pinIn2_, HIGH);
-        analogWrite(pinEna_, 255);
-
-        startTimeMs_ = millis();
-        startPositionMm_ = currentPositionMm_;
-        isMoving_ = true;
-    }
-
-    void brake() {
-        if (pinEna_ == -1 || !isMoving_) return;
-
-        digitalWrite(pinIn1_, LOW);
-        digitalWrite(pinIn2_, LOW);
-        analogWrite(pinEna_, 0);
-
-        isMoving_ = false;
-    }
-
-    void updateCurrentPosition() {
-        unsigned long elapsedTimeMs = millis() - startTimeMs_;
-        float distanceTravelledMm = (elapsedTimeMs / 1000.0f) * speedMmS_;
-
-        if (targetPositionMm_ > startPositionMm_) {
-            currentPositionMm_ = constrain(startPositionMm_ + distanceTravelledMm, 0.0f, strokeMm_);
-        }
-        else {
-            currentPositionMm_ = constrain(startPositionMm_ - distanceTravelledMm, 0.0f, strokeMm_);
-        }
-    }
-
-    const char* name_;
-
-    int pinEna_;
-    int pinIn1_;
-    int pinIn2_;
-
-    float strokeMm_;
-    float speedMmS_;
-
-    float targetPositionMm_ = 0.0f;
-    float startPositionMm_ = 0.0f;
-    float currentPositionMm_ = 0.0f;
-
-    unsigned long travelTimeMs_ = 0;
-    unsigned long startTimeMs_ = 0;
-
-    bool isMoving_ = false;
-};
-
-class Led {
-public:
-    Led(const char* name, int p) : name_(name), pin_(p) {}
-
-    void begin() {
-        if (pin_ == -1) return;
-
-        pinMode(pin_, OUTPUT);
-    }
-
-    void setBrightness(int level) {
-        if (pin_ == -1) return;
-
-        analogWrite(pin_, level);
-    }
-
-    void on() {
-        setBrightness(255);
-    }
-
-    void off() {
-        setBrightness(0);
-    }
-
-    const char* getName() const { return name_; }
-
-private:
-    const char* name_;
-    int pin_;
-};
-
-struct Dragon {
-    Motor wingsTop;         // Opening of the wing
-    Motor wingsBottom;      // Up/down wing movement
-    Motor headPan;          // Left/right rotation
-    Motor headTilt;         // Up/down nod
-    Motor headRoll;         // Side to side twist (see camera_movements.jpg)
-    Motor eyelids;
-    Motor ears;
-    Motor mouth;
- 
-    Led eyes;
-    Led breath;
-    Led smoke;  // Trigger for 2 or 3 seconds max
-
-    Motor* allMotors[8];
-    Led*   allLeds[3];
-
-    Dragon()
-      : wingsTop        ("wings_top", -1, -1, -1, 100.0, 14.0),
-        wingsBottom     ("wings_bot", -1, -1, -1, 150.0, 14.0),
-        headPan         ("pan",        8, 38, 46, 100.0, 5.5),  // Needs adjustment!
-        headTilt        ("tilt",       2, 30, 22, 300.0, 14.0),
-        headRoll        ("roll",       9, 39, 47, 50.0, 14.0),
-        eyelids         ("eyelids",    4, 24, 32, 50.0, 14.0),  // This is just a guess
-        ears            ("ears",      10, 40, 48, 50.0, 14.0),  // Also a guess
-        mouth           ("mouth",      3, 31, 23, 50.0, 14.0),
-
-        eyes            ("eyes",   A8),
-        breath          ("breath", -1),
-        smoke           ("smoke",  A0)
-    {
-        allMotors[0] = &wingsTop;
-        allMotors[1] = &wingsBottom;
-        allMotors[2] = &headPan;
-        allMotors[3] = &headTilt;
-        allMotors[4] = &headRoll;
-        allMotors[5] = &eyelids;
-        allMotors[6] = &ears;
-        allMotors[7] = &mouth;
-
-        allLeds[0] = &eyes;
-        allLeds[1] = &breath;
-        allLeds[2] = &smoke;
-    }
-
-    void begin() {
-        for (int i = 0; i < sizeof(allMotors) / sizeof(allMotors[0]); i++) {
-            allMotors[i]->begin();
-        }
-    }
-
-    void update() {
-        for (int i = 0; i < sizeof(allMotors) / sizeof(allMotors[0]); i++) {
-            allMotors[i]->update();
-        }
-    }
-
-    void stop() {
-        for (int i = 0; i < sizeof(allMotors) / sizeof(allMotors[0]); i++) {
-            allMotors[i]->stop();
-        }
-    }
-
-    bool isAnyMotorMoving() {
-        for (int i = 0; i < sizeof(allMotors) / sizeof(allMotors[0]); i++) {
-            if (allMotors[i]->isMoving()) return true;
-        }
-        return false;
-    }
-
-    void waitUntilFinished() {
-        while (isAnyMotorMoving()) {
-            update();
-        }
-    }
-
-    void reset() {
-        stop();
-        waitUntilFinished();
-    }
-
-    void roar() {
-        // 0. Mouth closed
-        // 1. Tilt forward
-        // 2. Open eyes
-        // 3. Slight twist to the side
-        // 4. Eyes pulse
-        // 5. Tilt back
-        // 6. Mouth open
-        // 7. Smoke machine
-        // 8. Eyes flash
-    }
-};
+#include "dragon.h"
+#include "show.h"
 
 Dragon graoully;
+
+const SequenceItem PROGMEM kRoarData[] = {
+    { 0,    "mouth", "1.0" },
+    { 500,  "tilt",  "0.8" },
+    { 1500, "eyes",  "on"  }
+};
+
+const int kRoarCount = sizeof(kRoarData) / sizeof(kRoarData[0]);
+
+const ShowPreset PROGMEM kShowLibrary[] = {
+    { "ROAR", kRoarData, kRoarCount }
+};
+
+ShowSequence presetSlot("SLOT0");
+ShowSequence serialSlot("SLOT1");
+
+SequencePlayer player;
 
 // List of available serial commands:
 
@@ -397,6 +130,11 @@ void handleGraoullyCommand(const String& action)
 
 void executeCommand(const String& target, const String& action)
 {
+    Serial.print(F("Received -> "));
+    Serial.print(target);
+    Serial.print(F(" : "));
+    Serial.println(action);
+
     if (target == "graoully") {
         handleGraoullyCommand(action);
     }
@@ -427,135 +165,10 @@ void handleSerialCommands()
             String target = input.substring(0, separatorIndex);
             String action = input.substring(separatorIndex + 1);
 
-            Serial.print(F("Received -> "));
-            Serial.print(target);
-            Serial.print(F(" : "));
-            Serial.println(action);
-
             executeCommand(target, action);
         }
     }
 }
-
-struct SequenceItem {
-    unsigned long offsetMs;
-    char target[16];
-    char action[16];
-};
-
-constexpr int MAX_SHOW_SEQUENCE_CAPACITY = 32;
-
-class ShowSequence {
-public:
-    ShowSequence(const String& name) : name_(name) {}
-
-    void append(unsigned long offset, const String& target, const String& action) {
-        if (count_ >= MAX_SHOW_SEQUENCE_CAPACITY) {
-            Serial.println(F("WARNING: Maximum  show sequence capacity reached!"));
-            return;
-        }
-
-        buffer_[count_].offsetMs = offset;
-
-        target.toCharArray(buffer_[count_].target, sizeof(buffer_[count_].target));
-        action.toCharArray(buffer_[count_].action, sizeof(buffer_[count_].action));
-
-        count_++;
-    }
-
-    const String& getName() const { return name_; }
-    int getCount() const { return count_; }
-    const SequenceItem& getItemAt(int index) const { return buffer_[index]; }
-
-private:
-    String name_;
-
-    SequenceItem buffer_[MAX_SHOW_SEQUENCE_CAPACITY];
-    int count_ = 0;
-};
-
-enum class QueueState {
-    STOPPED,
-    PLAYING,
-    PAUSED
-};
-
-class SequencePlayer {
-public:
-    void load(ShowSequence& sequence) {
-        if (sequence.getCount() == 0) {
-            Serial.println(F("ERROR: Sequence is empty!"));
-            return;
-        }
-
-        currentSequence_ = &sequence;
-        currentIndex_ = 0;
-        state_ = QueueState::STOPPED;
-
-        Serial.print(F("Loaded sequence: "));
-        Serial.println(sequence.getName());
-    }
-
-    // Should play() also resume?
-
-    void play() {
-        if (!currentSequence_) {
-            Serial.println(F("ERROR: No sequence loaded!"));
-            return;
-        }
-
-        startTimeMs_ = millis();
-        currentIndex_ = 0;
-        state_ = QueueState::PLAYING;
-
-        Serial.print(F("Currently playing: "));
-        Serial.println(currentSequence_->getName());
-    }
-
-    void pause() {
-        if (state_ != QueueState::PLAYING) return;
-
-        state_ = QueueState::PAUSED;
-
-        Serial.println(F("Sequence paused."));
-    }
-
-    void stop() {
-        state_ = QueueState::STOPPED;
-        currentIndex_ = 0;
-        currentSequence_ = nullptr;
-
-        Serial.println(F("Sequence stopped."));
-    }
-
-    void update() {
-        if (state_ != QueueState::PLAYING) return;
-
-        assert(currentSequence_ && "currentSequence_ cannot be null!");
-
-        const SequenceItem& item = currentSequence_->getItemAt(currentIndex_);
-        unsigned long targetTriggerTimeMs = startTimeMs_ + item.offsetMs;
-
-        if (millis() >= targetTriggerTimeMs) {
-            executeCommand(item.target, item.action);
-            currentIndex_++;
-        }
-
-        if (currentIndex_ >= currentSequence_->getCount()) {
-            Serial.println(F("Sequence finished playing. Stopping now."));
-            stop();
-        }
-    }
-
-    QueueState getState() const { return state_; }
-
-private:
-    ShowSequence* currentSequence_ = nullptr;
-    int currentIndex_ = 0;
-    unsigned long startTimeMs_ = 0;
-
-    QueueState state_ = QueueState::STOPPED;
-};
 
 void setup()
 {
