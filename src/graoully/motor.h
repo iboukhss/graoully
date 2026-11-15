@@ -1,6 +1,7 @@
 #ifndef MOTOR_H
 #define MOTOR_H
 
+#define VIRTUAL_MODE true
 // Example motor 1
 
 // Stroke:     50mm
@@ -18,6 +19,13 @@ public:
     }
 
     void begin() {
+
+        if (VIRTUAL_MODE) 
+        {
+            Serial.printf("[SIMU] Moteur '%s' initialisé virtuellement.\n", name_);
+            return;
+        }
+
         if (pinEna_ == -1) return;
 
         pinMode(pinEna_, OUTPUT);
@@ -108,15 +116,25 @@ public:
     const char* getName() const { return name_; }
     float getStroke() const { return strokeMm_; }
     float getPosition() const { return currentPositionMm_; }
+    float getPositionRatio() const 
+    {
+        if (strokeMm_ <= 0.0f) return 0.0f;
+        return currentPositionMm_ / strokeMm_;
+    }
     bool isMoving() const { return isMoving_; }
 
 private:
     void extend() {
-        if (pinEna_ == -1) return;
+        if (!VIRTUAL_MODE && pinEna_ == -1) return;
 
-        digitalWrite(pinIn1_, HIGH);
-        digitalWrite(pinIn2_, LOW);
-        analogWrite(pinEna_, 255);
+        if(!VIRTUAL_MODE)
+        {
+            digitalWrite(pinIn1_, HIGH);
+            digitalWrite(pinIn2_, LOW);
+            analogWrite(pinEna_, 255);
+        }
+        else
+            Serial.printf("[SIMU] Moteur '%s' avance vers %.1f mm\n", name_, targetPositionMm_);
 
         startTimeMs_ = millis();
         startPositionMm_ = currentPositionMm_;
@@ -124,11 +142,16 @@ private:
     }
 
     void retract() {
-        if (pinEna_ == -1) return;
+        if (!VIRTUAL_MODE && pinEna_ == -1) return;
 
-        digitalWrite(pinIn1_, LOW);
-        digitalWrite(pinIn2_, HIGH);
-        analogWrite(pinEna_, 255);
+        if(!VIRTUAL_MODE)
+        {
+            digitalWrite(pinIn1_, LOW);
+            digitalWrite(pinIn2_, HIGH);
+            analogWrite(pinEna_, 255);
+        }
+        else
+            Serial.printf("[SIMU] Moteur '%s' recule vers %.1f mm\n", name_, targetPositionMm_); 
 
         startTimeMs_ = millis();
         startPositionMm_ = currentPositionMm_;
@@ -136,11 +159,15 @@ private:
     }
 
     void brake() {
-        if (pinEna_ == -1 || !isMoving_) return;
+        if (!VIRTUAL_MODE && (pinEna_ == -1 || !isMoving_)) return;
+        if (VIRTUAL_MODE && !isMoving_) return;
 
-        digitalWrite(pinIn1_, LOW);
-        digitalWrite(pinIn2_, LOW);
-        analogWrite(pinEna_, 0);
+        if(!VIRTUAL_MODE)
+        {
+            digitalWrite(pinIn1_, LOW);
+            digitalWrite(pinIn2_, LOW);
+            analogWrite(pinEna_, 0);
+        }
 
         isMoving_ = false;
     }

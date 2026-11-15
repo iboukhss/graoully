@@ -1,7 +1,9 @@
 #include "dragon.h"
 #include "show.h"
+#include "web_manager.h"
 
 Dragon graoully;
+WebManager webManager("TON_SSID_WIFI", "TON_MOT_DE_PASSE");
 
 // This sequence is best used when starting at a neutral position, ie. head tilt
 // of 0.5 or higher
@@ -402,8 +404,18 @@ void handleSerialCommands()
 void setup()
 {
     Serial.begin(115200);
+
+    if(!VIRTUAL_MODE)
+    {
+        //need to set 16 et 17 correctly depend of real connection
+        Serial2.begin(115200, SERIAL_8N1,16,17);
+    }
+
     graoully.begin();
     graoully.eyes.on();
+
+    webManager.setCommandCallback(executeCommand);
+    webManager.begin();
 }
 
 void loop()
@@ -411,4 +423,5 @@ void loop()
     graoully.update();
     player.update();
     handleSerialCommands();
+    webManager.update(graoully);
 }

@@ -56,7 +56,9 @@ struct Dragon {
         allLeds[2] = &smoke;
     }
 
-    void begin() {
+    void begin() 
+    {
+
         for (int i = 0; i < kNumMotors; i++) {
             allMotors[i]->begin();
         }
@@ -65,22 +67,30 @@ struct Dragon {
             allLeds[i]->begin();
         }
 
-        Serial1.begin(115200);
-        int retries = 5;
-
-        while (!mp3.begin(Serial1)) {
-            delay(1000);
-            retries++;
-            if (retries > 5) {
-                Serial.println(F("ERROR: MP3 module not responding on Serial1. Continuing without audio."));
-                break;
-            }
+        if(VIRTUAL_MODE)
+        {
+            Serial.println(F("[SIMU] Mode virtuel actif : Module MP3 ignoré."));
         }
 
-        mp3.setVol(15);
-        mp3.switchFunction(mp3.MUSIC);
-        delay(500);
-        mp3.setPlayMode(mp3.SINGLE);
+        else
+        {
+            Serial1.begin(115200);
+            int retries = 5;
+
+            while (!mp3.begin(Serial1)) {
+                delay(1000);
+                retries++;
+                if (retries > 5) {
+                    Serial.println(F("ERROR: MP3 module not responding on Serial1. Continuing without audio."));
+                    break;
+                }
+            }
+
+            mp3.setVol(15);
+            mp3.switchFunction(mp3.MUSIC);
+            delay(500);
+            mp3.setPlayMode(mp3.SINGLE);
+        }
     }
 
     void update() {
