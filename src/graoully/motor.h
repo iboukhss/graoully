@@ -12,7 +12,7 @@
 
 class Motor {
 public:
-    Motor(const char* name, int ena, int in1, int in2, float stroke, float speed)
+    Motor(const String& name, int ena, int in1, int in2, float stroke, float speed)
       : name_(name), pinEna_(ena), pinIn1_(in1), pinIn2_(in2), strokeMm_(stroke), speedMmS_(speed)
     {
     }
@@ -98,14 +98,13 @@ public:
         Serial.print(name_);
         Serial.print(F(", Stroke: "));
         Serial.print(strokeMm_);
-        Serial.print(F(", Position: "));
+        Serial.print(F("mm, Position: "));
         Serial.print(currentPositionMm_);
-        Serial.print(F("mm")),
-        Serial.print(F(", Moving: "));
+        Serial.print(F("mm, Moving: "));
         Serial.println(isMoving_ ? F("YES") : F("NO"));
     }
 
-    const char* getName() const { return name_; }
+    const String& getName() const { return name_; }
     float getStroke() const { return strokeMm_; }
     float getPosition() const { return currentPositionMm_; }
     bool isMoving() const { return isMoving_; }
@@ -157,7 +156,7 @@ private:
         }
     }
 
-    const char* name_;
+    String name_;
 
     int pinEna_;
     int pinIn1_;

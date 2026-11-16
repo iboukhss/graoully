@@ -1,10 +1,10 @@
 #ifndef DRAGON_H
 #define DRAGON_H
 
-#include <DFRobot_DF1201S.h>
-
 #include "led.h"
 #include "motor.h"
+#include "mp3_module.h"
+#include "rtc_module.h"
 
 struct Dragon {
     Motor wingsTop;         // Opening of the wing
@@ -18,9 +18,10 @@ struct Dragon {
  
     Led eyes;
     Led breath;
-    Led smoke;  // Trigger for 2 or 3 seconds max
+    Led smoke;              // Trigger for 2 or 3 seconds max
 
-    DFRobot_DF1201S mp3;
+    Mp3Module mp3;
+    RtcModule rtc;
 
     Motor* allMotors[8];
     Led*   allLeds[3];
@@ -40,7 +41,9 @@ struct Dragon {
 
         eyes            ("eyes",   A8),
         breath          ("breath", A0),
-        smoke           ("smoke",  A1)
+        smoke           ("smoke",  A1),
+
+        mp3             (Serial1)
     {
         allMotors[0] = &wingsTop;
         allMotors[1] = &wingsBottom;
@@ -65,22 +68,8 @@ struct Dragon {
             allLeds[i]->begin();
         }
 
-        Serial1.begin(115200);
-        int retries = 5;
-
-        while (!mp3.begin(Serial1)) {
-            delay(1000);
-            retries++;
-            if (retries > 5) {
-                Serial.println(F("ERROR: MP3 module not responding on Serial1. Continuing without audio."));
-                break;
-            }
-        }
-
-        mp3.setVol(15);
-        mp3.switchFunction(mp3.MUSIC);
-        delay(500);
-        mp3.setPlayMode(mp3.SINGLE);
+        mp3.begin();
+        rtc.begin();
     }
 
     void update() {

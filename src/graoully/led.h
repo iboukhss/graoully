@@ -9,7 +9,7 @@ enum class LedState {
 
 class Led {
 public:
-    Led(const char* name, int p) : name_(name), pin_(p) {}
+    Led(const String& name, int p) : name_(name), pin_(p) {}
 
     void begin() {
         if (pin_ == -1) return;
@@ -57,17 +57,17 @@ public:
         if (pin_ == -1) return;
 
         setBrightness(255);
+        startTimeMs_ = millis();
         state_ = LedState::TIMED;
         durationMs_ = durationMs;
-        startTimeMs_ = millis();
     }
 
-    const char* getName() const { return name_; }
+    const String& getName() const { return name_; }
     LedState getState() const { return state_; }
 
 private:
-    const char* name_;
-    int pin_;
+    String name_;
+    int pin_ = -1;
 
     LedState state_ = LedState::OFF;
     unsigned long startTimeMs_ = 0;

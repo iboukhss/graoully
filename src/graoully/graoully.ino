@@ -84,6 +84,7 @@ bool isCapturingSequence = false;
 // seq:print
 // seq:print?NAME
 
+
 void handleAudioCommand(const String& action)
 {
     String parsedAction = action;
@@ -99,18 +100,18 @@ void handleAudioCommand(const String& action)
     if (parsedAction == "play") {
         if (parsedArg.length() > 0) {
             int trackNum = parsedArg.toInt();
-            graoully.mp3.playFileNum(trackNum);
+            graoully.mp3.playFileNumber(trackNum);
             Serial.print(F("Playing track number: "));
             Serial.println(trackNum);
         }
         else {
-            graoully.mp3.start();
+            graoully.mp3.play();
         }
     }
     else if (parsedAction == "vol") {
         if (parsedArg.length() > 0) {
             int vol = parsedArg.toInt();
-            graoully.mp3.setVol(vol);
+            graoully.mp3.setVolume(vol);
             Serial.print(F("Volume set to: "));
             Serial.println(vol);
         }
@@ -325,7 +326,10 @@ void executeCommand(const String& target, const String& action)
     Serial.print(F(" : "));
     Serial.println(action);
 
-    if (target == "graoully") {
+    if (target == "time") {
+        graoully.rtc.printToSerial();
+    }
+    else if (target == "graoully") {
         handleGraoullyCommand(action);
     }
     else if (isMotorCommand(target)) {

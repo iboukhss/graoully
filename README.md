@@ -9,6 +9,11 @@
 - [Terminal Block Shield for Arduino Mega](https://wiki.dfrobot.com/dfr0921/)
 - [NEXO DTD-I loudspeaker control processor](https://www.nexo-sa.com/products/dtd-i/)
 
+## External libraries
+
+- [DFRobot_DF1201S](https://github.com/DFRobot/DFRobot_DF1201S)
+- [DFRobot_DS3231M](https://github.com/DFRobot/DFRobot_DS3231M)
+
 ## TODO
 
 - Acheter un relais 5V: https://www.gotronic.fr/cat-modules-a-relais-1585.htm
