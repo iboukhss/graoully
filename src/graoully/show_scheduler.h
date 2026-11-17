@@ -8,24 +8,36 @@ enum class ControlMode {
     MANUAL
 };
 
-extern ControlMode currentMode;
+extern ControlMode currentMode;it 
 extern ShowPlayer player;
 
 class ShowScheduler {
 public:
     void begin() {
         rtc_.begin();
+        lastMillis_ = millis();
     }
 
     void update() {
         if (currentMode != ControlMode::AUTO) return;
         if (player.getState() == PlayerState::PLAYING) return;
 
-        unsigned long currentTimeMs = millis();
+        unsigned long currentMillis = millis();
 
-        if (currentTimeMs - lastPollMs_ < 500) return;
+        if (!rtc_.isReady()) {
+            const unsigned long kIntervalMs = 10UL * 60UL * 1000UL;
 
-        lastPollMs_ = currentTimeMs;
+            if (currentMillis - lastMillis_ >= kIntervalMs) {
+                lastMillis_ = currentMillis;
+                Serial.println(F("INFO: [FALLBACK] Playing fixed 10 minute sequence."));
+            }
+
+            return;
+        }
+
+        if (currentMillis - lastPollMs_ < 500) return;
+
+        lastPollMs_ = currentMillis;
 
         TimeOfDay now = rtc_.getTimeOfDay();
         int currentTotalMinutes = now.hour * 60 + now.minute;
@@ -51,6 +63,7 @@ public:
 private:
     RtcModule rtc_;
     unsigned long lastPollMs_ = 0;
+    unsigned long lastMillis_ = 0;
     int lastTriggeredMinute_ = -1;
 };
 
