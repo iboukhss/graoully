@@ -8,7 +8,7 @@ enum class ControlMode {
     MANUAL
 };
 
-extern ControlMode currentMode;it 
+extern ControlMode currentMode;
 extern ShowPlayer player;
 
 class ShowScheduler {
