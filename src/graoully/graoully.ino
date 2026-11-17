@@ -1,68 +1,13 @@
 #include "dragon.h"
 #include "show.h"
+#include "show_player.h"
 #include "show_scheduler.h"
 
 Dragon graoully;
+ShowPlayer player;
 ShowScheduler scheduler;
-SequencePlayer player;
 
 ControlMode currentMode = ControlMode::AUTO;
-
-// This sequence is best used when starting at a neutral position, ie. head tilt
-// of 0.5 or higher
-const SequenceItem PROGMEM kSleepSeqData[] = {
-    { 0,     "breath",  "off" },
-    { 0,     "pan",     "0.5" },
-    { 0,     "roll",    "0.5" },
-    { 2000,  "tilt",    "0.1" },
-    { 8000,  "pan",     "0.1" },
-    { 10000, "eyelids", "0.0" },
-    { 10000, "mouth",   "0.0" },
-    { 13000, "eyes",    "off" },
-    { 17000, "ears",    "0.0" },
-    { 22000, "mouth",   "0.1" }
-};
-
-constexpr int kSleepSeqCount = sizeof(kSleepSeqData) / sizeof(kSleepSeqData[0]);
-
-// This sequence works really well when the dragon is already sleeping
-const SequenceItem PROGMEM kAlertSeqData[] = {
-    { 0,     "ears",    "0.5"  },
-    { 4000,  "eyes",    "on"   },
-    { 4000,  "breath",  "on"   },
-    { 6000,  "eyelids", "0.3"  },
-    { 10000, "pan",     "0.5"  },
-    { 20000, "mouth",   "0.3"  },
-    { 21000, "smoke",   "3000" },
-    { 26000, "mouth",   "0.0"  },
-    { 30000, "pan",     "0.1"  },
-    { 32000, "eyelids", "0.0"  },
-    { 35000, "eyes",    "off"  },
-    { 35000, "breath",  "off"  },
-    { 40000, "ears",    "0.0"  },
-    { 45000, "mouth",   "0.1"  }
-};
-
-constexpr int kAlertSeqCount = sizeof(kAlertSeqData) / sizeof(kAlertSeqData[0]);
-
-const SequenceItem PROGMEM kWakeSeqData[] = {
-    { 0,     "breath",   "on" },
-    { 0,     "mouth",    "0.1" },
-    { 1500,  "smoke",    "3000" }
-};
-
-constexpr int kWakeSeqCount = sizeof(kWakeSeqData) / sizeof(kWakeSeqData[0]);
-
-const ShowPreset PROGMEM kPresetLibrary[] = {
-    { "SLEEP", kSleepSeqData, kSleepSeqCount},
-    { "ALERT", kAlertSeqData, kAlertSeqCount },
-    { "WAKE",  kWakeSeqData,  kWakeSeqCount }
-};
-
-constexpr int kNumPresets = sizeof(kPresetLibrary) / sizeof(kPresetLibrary[0]);
-
-ShowSequence presetSlot("SLOT0");
-ShowSequence serialSlot("SLOT1");
 
 bool isCapturingSequence = false;
 
@@ -122,20 +67,6 @@ void handleAudioCommand(const String& action)
     }
 }
 
-const ShowPreset* getPreset(const String& name)
-{
-    for (int i = 0; i < kNumPresets; i++) {
-        ShowPreset localPreset;
-
-        memcpy_P(&localPreset, &kPresetLibrary[i], sizeof(kPresetLibrary[i]));
-
-        if (String(localPreset.name).equalsIgnoreCase(name)) {
-            return &kPresetLibrary[i];
-        }
-    }
-    return nullptr;
-}
-
 void handleShowCommand(const String& action)
 {
     String parsedAction = action;
@@ -150,22 +81,10 @@ void handleShowCommand(const String& action)
 
     if (parsedAction == "play") {
         if (parsedArg.length() > 0) {
-            const ShowPreset* ptr = getPreset(parsedArg);
-
-            if (!ptr) {
-                Serial.print(F("ERROR: Show preset not found -> "));
-                Serial.println(parsedArg);
-                return;
-            }
-
-            presetSlot.loadFromFlash(ptr);
-            player.load(presetSlot);
-            player.play();
+            player.play(parsedArg);
         }
         else {
-            // Just play whatever is on the serial slot already
-            player.load(serialSlot);
-            player.play();
+            player.playSerialSlot();
         }
     }
     else if (parsedAction == "stop") {
@@ -186,14 +105,14 @@ void handleSeqCommand(const String& action)
     }
 
     if (parsedAction == "begin") {
-        serialSlot.clear();
+        player.getSerialSlot().clear();
         isCapturingSequence = true;
         Serial.println(F("--- Entering CSV capture mode ---"));
         Serial.println(F("Send lines as: offset,target,action"));
         Serial.println(F("Send a single '.' to finish the capture."));
     }
     else if (parsedAction == "clear") {
-        serialSlot.clear();
+        player.getSerialSlot().clear();
     }
     else if (parsedAction == "print") {
         if (parsedArg.length() > 0) {
@@ -205,12 +124,12 @@ void handleSeqCommand(const String& action)
                 return;
             }
 
-            ShowSequence tempSlot("TMP");
+            Show tempSlot("TMP");
             tempSlot.loadFromFlash(ptr);
             tempSlot.printToSerial();
         }
         else {
-            serialSlot.printToSerial();
+            player.getSerialSlot().printToSerial();
         }
     }
     else {
@@ -413,7 +332,7 @@ void handleSerialCommands()
                 String target = input.substring(firstComma + 1, secondComma);
                 String action = input.substring(secondComma + 1);
 
-                serialSlot.append(offset, target, action);
+                player.getSerialSlot().append(offset, target, action);
 
                 Serial.print(F("OK Offset: "));
                 Serial.print(offset);

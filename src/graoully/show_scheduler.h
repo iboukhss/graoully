@@ -9,8 +9,7 @@ enum class ControlMode {
 };
 
 extern ControlMode currentMode;
-extern Dragon graoully;
-extern SequencePlayer player;
+extern ShowPlayer player;
 
 class ShowScheduler {
 public:
