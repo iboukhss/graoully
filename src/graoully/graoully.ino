@@ -1,7 +1,12 @@
 #include "dragon.h"
 #include "show.h"
+#include "show_scheduler.h"
 
 Dragon graoully;
+ShowScheduler scheduler;
+SequencePlayer player;
+
+ControlMode currentMode = ControlMode::AUTO;
 
 // This sequence is best used when starting at a neutral position, ie. head tilt
 // of 0.5 or higher
@@ -58,7 +63,6 @@ constexpr int kNumPresets = sizeof(kPresetLibrary) / sizeof(kPresetLibrary[0]);
 
 ShowSequence presetSlot("SLOT0");
 ShowSequence serialSlot("SLOT1");
-SequencePlayer player;
 
 bool isCapturingSequence = false;
 
@@ -319,6 +323,24 @@ void handleGraoullyCommand(const String& action)
     }
 }
 
+void handleModeCommand(const String& action)
+{
+    if (action == "auto") {
+        currentMode = ControlMode::AUTO;
+    }
+    else if (action == "manual") {
+        currentMode = ControlMode::MANUAL;
+    }
+    else if (action == "status") {
+        Serial.print(F("Current mode: "));
+        Serial.println(currentMode == ControlMode::AUTO ? F("AUTO") : F("MANUAL"));
+    }
+    else {
+        Serial.print(F("ERROR: Unknown mode action: "));
+        Serial.println(action);
+    }
+}
+
 void executeCommand(const String& target, const String& action)
 {
     Serial.print(F("Received -> "));
@@ -326,8 +348,19 @@ void executeCommand(const String& target, const String& action)
     Serial.print(F(" : "));
     Serial.println(action);
 
+    // Mode commands are always allowed
+    if (target == "mode") {
+        handleModeCommand(action);
+        return;
+    }
+
+    if (currentMode == ControlMode::AUTO) {
+        Serial.println(F("ERROR: Blocked! System is currently in AUTO mode. Switch to MANUAL mode with `mode:manual` to take control."));
+        return;
+    }
+
     if (target == "time") {
-        graoully.rtc.printToSerial();
+        scheduler.printTime();
     }
     else if (target == "graoully") {
         handleGraoullyCommand(action);
@@ -408,11 +441,13 @@ void setup()
     Serial.begin(115200);
     graoully.begin();
     graoully.eyes.on();
+    scheduler.begin();
 }
 
 void loop()
 {
-    graoully.update();
-    player.update();
     handleSerialCommands();
+    player.update();
+    scheduler.update();
+    graoully.update();
 }

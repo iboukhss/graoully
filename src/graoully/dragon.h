@@ -4,7 +4,6 @@
 #include "led.h"
 #include "motor.h"
 #include "mp3_module.h"
-#include "rtc_module.h"
 
 struct Dragon {
     Motor wingsTop;         // Opening of the wing
@@ -21,7 +20,6 @@ struct Dragon {
     Led smoke;              // Trigger for 2 or 3 seconds max
 
     Mp3Module mp3;
-    RtcModule rtc;
 
     Motor* allMotors[8];
     Led*   allLeds[3];
@@ -69,7 +67,6 @@ struct Dragon {
         }
 
         mp3.begin();
-        rtc.begin();
     }
 
     void update() {

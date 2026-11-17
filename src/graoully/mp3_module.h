@@ -33,23 +33,34 @@ public:
         }
 
         Serial.println(F("ERROR: Couldn't initialize MP3 module."));
+        isReady_ = false;
     }
 
     void playFileNumber(int fileNum) {
+        if (!isReady_) return;
+
         mp3_.playFileNum(fileNum);
     }
 
     void setVolume(int volume) {
+        if (!isReady_) return;
+
         mp3_.setVol(volume);
     }
 
     void play() {
+        if (!isReady_) return;
+
         mp3_.start();
     }
+
+    bool isReady() const { return isReady_; }
 
 private:
     HardwareSerial& serial_;
     DFRobot_DF1201S mp3_;
+
+    bool isReady_ = false;
 };
 
 #endif
