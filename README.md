@@ -17,3 +17,15 @@
 ## TODO
 
 - Acheter un relais 5V: https://www.gotronic.fr/cat-modules-a-relais-1585.htm
+
+## Programmation
+
+dimanche - jeudi -> 11h - 21h et 11h - 17h
+
+tourner tete
+grognement
+ouvrir la gueule
+
+17h
+
+vendredi - samedi -> 11h - 22h

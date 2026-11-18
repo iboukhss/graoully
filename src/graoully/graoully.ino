@@ -47,7 +47,7 @@ void handleAudioCommand(const String& action)
     }
 
     if (parsedAction == "play") {
-        if (parsedArg.length() > 0) {
+        if (parsedArg.length()) {
             int trackNum = parsedArg.toInt();
             graoully.mp3.playFileNumber(trackNum);
             Serial.print(F("Playing track number: "));
@@ -80,7 +80,7 @@ void handleShowCommand(const String& action)
     }
 
     if (parsedAction == "play") {
-        if (parsedArg.length() > 0) {
+        if (parsedArg.length()) {
             player.play(parsedArg);
         }
         else {
@@ -115,8 +115,8 @@ void handleSeqCommand(const String& action)
         player.getSerialSlot().clear();
     }
     else if (parsedAction == "print") {
-        if (parsedArg.length() > 0) {
-            const ShowPreset* ptr = getPreset(parsedArg);
+        if (parsedArg.length()) {
+            const ShowPreset* ptr = getPresetByName(parsedArg);
 
             if (!ptr) {
                 Serial.print(F("ERROR: Show preset not found -> "));
@@ -214,6 +214,38 @@ void handleMotorCommand(const String& target, const String& action)
     }
 }
 
+void handleTimeCommand(const String& action)
+{
+    String parsedAction = action;
+    String parsedArg = "";
+
+    int qIndex = action.indexOf('?');
+
+    if (qIndex != -1) {
+        parsedAction = action.substring(0, qIndex);
+        parsedArg = action.substring(qIndex + 1);
+    }
+
+    if (parsedAction == "print") {
+        scheduler.getClock().printToSerial();
+    }
+    else if (parsedAction == "set") {
+        int y, m, d, hh, mm, ss;
+        int parsed = sscanf(parsedArg.c_str(), "%d,%d,%d,%d,%d,%d", &y, &m, &d, &hh, &mm, &ss);
+
+        if (parsed == 6) {
+            scheduler.getClock().setDateTime(y, m, d, hh, mm, ss);
+        }
+        else {
+            Serial.println(F("ERROR: Invalid format. Use: time:set?YYYY,MM,DD,HH,MM,SS"));
+        }
+    }
+    else {
+        Serial.print(F("ERROR: Unknown time action -> "));
+        Serial.println(action);
+    }
+}
+
 void handleGraoullyCommand(const String& action)
 {
     if (action == "home") {
@@ -246,9 +278,11 @@ void handleModeCommand(const String& action)
 {
     if (action == "auto") {
         currentMode = ControlMode::AUTO;
+        Serial.println(F("OK: Switched to automatic mode."));
     }
     else if (action == "manual") {
         currentMode = ControlMode::MANUAL;
+        Serial.println(F("OK: Switched to manual mode."));
     }
     else if (action == "status") {
         Serial.print(F("Current mode: "));
@@ -274,12 +308,12 @@ void executeCommand(const String& target, const String& action)
     }
 
     if (currentMode == ControlMode::AUTO) {
-        Serial.println(F("ERROR: Blocked! System is currently in AUTO mode. Switch to MANUAL mode with `mode:manual` to take control."));
+        Serial.println(F("ERROR: Command blocked. System is currently in AUTO mode. Switch to MANUAL mode to take control."));
         return;
     }
 
     if (target == "time") {
-        scheduler.printTime();
+        handleTimeCommand(action);
     }
     else if (target == "graoully") {
         handleGraoullyCommand(action);
@@ -311,7 +345,7 @@ void handleSerialCommands()
         String input = Serial.readStringUntil('\n');
         input.trim();
 
-        if (!input) return;
+        if (!input.length()) return;
 
         if (isCapturingSequence) {
             if (input == ".") {
@@ -341,6 +375,7 @@ void handleSerialCommands()
                 Serial.print(F(", Action: "));
                 Serial.println(action);
             }
+
             return;
         }
 
@@ -358,6 +393,11 @@ void handleSerialCommands()
 void setup()
 {
     Serial.begin(115200);
+
+    // Wait for serial monitor to connect
+    delay(2000);
+
+    randomSeed(analogRead(A15));
     graoully.begin();
     graoully.eyes.on();
     scheduler.begin();

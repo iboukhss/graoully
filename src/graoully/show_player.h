@@ -13,7 +13,7 @@ enum class PlayerState {
 class ShowPlayer {
 public:
     void play(const String& presetName) {
-        const ShowPreset* ptr = getPreset(presetName);
+        const ShowPreset* ptr = getPresetByName(presetName);
         if (!ptr) {
             Serial.print(F("ERROR: Show preset not found -> "));
             Serial.println(presetName);
@@ -27,7 +27,26 @@ public:
         state_ = PlayerState::PLAYING;
 
         Serial.print(F("Currently playing: "));
-        Serial.println(flashSlot_.getName());
+        Serial.println(currentShow_->getName());
+
+        startTimeMs_ = millis();
+    }
+
+    void playRandomPreset() {
+        const ShowPreset* ptr = getRandomPreset();
+        if (!ptr) {
+            Serial.println(F("ERROR: No presets available!"));
+            return;
+        }
+
+        flashSlot_.loadFromFlash(ptr);
+
+        currentShow_ = &flashSlot_;
+        currentIndex_ = 0;
+        state_ = PlayerState::PLAYING;
+
+        Serial.print(F("Currently playing (randomized preset): "));
+        Serial.println(currentShow_->getName());
 
         startTimeMs_ = millis();
     }
@@ -42,7 +61,7 @@ public:
         currentIndex_ = 0;
         state_ = PlayerState::PLAYING;
 
-        Serial.print(F("Currently playing: "));
+        Serial.print(F("Currently playing (serial): "));
         Serial.println(serialSlot_.getName());
 
         startTimeMs_ = millis();
@@ -57,9 +76,9 @@ public:
     }
 
     void stop() {
-        state_ = PlayerState::STOPPED;
-        currentIndex_ = 0;
         currentShow_ = nullptr;
+        currentIndex_ = 0;
+        state_ = PlayerState::STOPPED;
 
         Serial.println(F("Show stopped."));
     }

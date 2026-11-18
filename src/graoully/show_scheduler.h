@@ -29,9 +29,9 @@ public:
 
             if (currentMillis - lastMillis_ >= kIntervalMs) {
                 lastMillis_ = currentMillis;
-                Serial.println(F("INFO: [FALLBACK] Playing fixed 10 minute sequence."));
+                Serial.println(F("INFO: RTC offline. Falling back to scheduling shows every 10 minutes."));
+                player.playRandomPreset();
             }
-
             return;
         }
 
@@ -44,21 +44,30 @@ public:
 
         if (currentTotalMinutes == lastTriggeredMinute_) return;
 
-        if (now.minute % 10 == 0) {
-            if (now.hour >= 10 && now.hour < 18) {
+        DayOfWeek day = rtc_.getDayOfWeek();
+
+        // 10 PM on Fri-Sat, 9 PM on Sun-Thu
+        int eveningEndHour = (day >= DayOfWeek::FRIDAY) ? 22 : 21;
+
+        // Daytime block: 11:00 to 17:00 (Every 15 minutes)
+        if (now.hour >= 11 && now.hour < 17) {
+            if (now.minute % 15 == 0) {
                 lastTriggeredMinute_ = currentTotalMinutes;
                 Serial.println(F("INFO: Triggering daytime preset."));
+                player.playRandomPreset();
             }
-            else if (now.hour >= 18 && now.hour < 22) {
+        }
+        // Evening block: 17:00 to eveningEndHour (Every 10 minutes)
+        else if (now.hour >= 17 && now.hour < eveningEndHour) {
+            if (now.minute % 10 == 0) {
                 lastTriggeredMinute_ = currentTotalMinutes;
                 Serial.println(F("INFO: Triggering nighttime preset."));
+                player.playRandomPreset();
             }
         }
     }
 
-    void printTime() {
-        rtc_.printToSerial();
-    }
+    RtcModule& getClock() { return rtc_; }
 
 private:
     RtcModule rtc_;
