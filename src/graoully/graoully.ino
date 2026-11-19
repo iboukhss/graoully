@@ -7,11 +7,15 @@ Dragon graoully;
 ShowPlayer player;
 ShowScheduler scheduler;
 
-ControlMode currentMode = ControlMode::AUTO;
+ControlMode currentMode = ControlMode::MANUAL;
 
+bool allowNightEffects = false;
 bool isCapturingSequence = false;
 
 // List of available serial commands:
+
+// time:print
+// time:set?yyyy,mm,dd,hh,mm,ss
 
 // graoully:home
 // graoully:stop
@@ -33,6 +37,7 @@ bool isCapturingSequence = false;
 // seq:print
 // seq:print?NAME
 
+// mp3:play?u8_value
 
 void handleAudioCommand(const String& action)
 {
@@ -64,6 +69,13 @@ void handleAudioCommand(const String& action)
             Serial.print(F("Volume set to: "));
             Serial.println(vol);
         }
+    }
+    else if (parsedAction == "status") {
+        graoully.mp3.printToSerial();
+    }
+    else {
+        Serial.print(F("ERROR: Unknown audio action"));
+        Serial.println(action);
     }
 }
 
@@ -160,6 +172,8 @@ Led* getLed(const String& target)
 
 void handleLedCommand(const String& target, const String& action)
 {
+    if (!allowNightEffects) return;
+
     Led* led = getLed(target);
 
     if (action == "on") {
@@ -301,21 +315,7 @@ void executeCommand(const String& target, const String& action)
     Serial.print(F(" : "));
     Serial.println(action);
 
-    // Mode commands are always allowed
-    if (target == "mode") {
-        handleModeCommand(action);
-        return;
-    }
-
-    if (currentMode == ControlMode::AUTO) {
-        Serial.println(F("ERROR: Command blocked. System is currently in AUTO mode. Switch to MANUAL mode to take control."));
-        return;
-    }
-
-    if (target == "time") {
-        handleTimeCommand(action);
-    }
-    else if (target == "graoully") {
+    if (target == "graoully") {
         handleGraoullyCommand(action);
     }
     else if (isMotorCommand(target)) {
@@ -385,7 +385,21 @@ void handleSerialCommands()
             String target = input.substring(0, separatorIndex);
             String action = input.substring(separatorIndex + 1);
 
-            executeCommand(target, action);
+            // Mode commands are always allowed
+            if (target == "mode") {
+                handleModeCommand(action);
+                return;
+            }
+            else if (target == "time") {
+                handleTimeCommand(action);
+            }
+            else if (currentMode == ControlMode::AUTO) {
+                Serial.println(F("ERROR: Command blocked. System is currently in AUTO mode. Switch to MANUAL mode to take control."));
+                return;
+            }
+            else {
+                executeCommand(target, action);
+            }
         }
     }
 }
@@ -398,9 +412,10 @@ void setup()
     delay(2000);
 
     randomSeed(analogRead(A15));
+    scheduler.begin();
     graoully.begin();
     graoully.eyes.on();
-    scheduler.begin();
+    graoully.home();
 }
 
 void loop()

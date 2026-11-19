@@ -80,6 +80,7 @@ struct Dragon {
     }
 
     void stop() {
+        Serial.println(F("WARNING: Initated emergency stop."));
         for (int i = 0; i < kNumMotors; i++) {
             allMotors[i]->stop();
         }
@@ -100,16 +101,19 @@ struct Dragon {
 
     void home() {
         stop();
+
+        Serial.println(F("INFO: Initiating homing sequence. Waiting..."));
         for (int i = 0; i < kNumMotors; i++) {
             allMotors[i]->home();
         }
+
         waitUntilFinished();
         Serial.println(F("Homing done. Graoully is ready."));
     }
 
     void reset() {
         stop();
-        headTilt.moveTo(0.5);
+        headTilt.moveTo(0.3);
         headPan.moveTo(0.5);
         headRoll.moveTo(0.5);
         mouth.moveTo(0);

@@ -21,11 +21,12 @@ public:
 
             if (mp3_.begin(serial_)) {
                 mp3_.setPrompt(false);
-                mp3_.setVol(15);
                 mp3_.switchFunction(mp3_.MUSIC);
                 mp3_.setPlayMode(mp3_.SINGLE);
+                mp3_.setVol(15);
 
                 Serial.println(F("OK: MP3 module initialized successfully."));
+                isReady_ = true;
                 return;
             }
 
@@ -40,6 +41,9 @@ public:
         if (!isReady_) return;
 
         mp3_.playFileNum(fileNum);
+
+        Serial.print(F("[INFO] Currently playing: "));
+        Serial.println(mp3_.getFileName());
     }
 
     void setVolume(int volume) {
@@ -52,6 +56,25 @@ public:
         if (!isReady_) return;
 
         mp3_.start();
+    }
+
+    void pause() {
+        if (!isReady_) return;
+
+        mp3_.pause();
+    }
+    
+    void printToSerial() {
+        if (!isReady_) {
+            Serial.println(F("ERROR: MP3 module offline."));
+            return;
+        }
+
+        Serial.println(F("--- MP3 status ---"));
+        Serial.print(F("Total files: ")); Serial.println(mp3_.getTotalFile());
+        Serial.print(F("Current track: #")); Serial.println(mp3_.getCurFileNumber());
+        Serial.print(F("File name: ")); Serial.println(mp3_.getFileName());
+        Serial.print(F("Volume: ")); Serial.println(mp3_.getVol());
     }
 
     bool isReady() const { return isReady_; }

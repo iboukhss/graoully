@@ -10,6 +10,8 @@ enum class ControlMode {
 
 extern ControlMode currentMode;
 extern ShowPlayer player;
+extern Dragon graoully;
+extern bool allowNightEffects;
 
 class ShowScheduler {
 public:
@@ -20,7 +22,18 @@ public:
 
     void update() {
         if (currentMode != ControlMode::AUTO) return;
-        if (player.getState() == PlayerState::PLAYING) return;
+
+        PlayerState currentState = player.getState();
+
+        if (wasPlaying_ && currentState != PlayerState::PLAYING) {
+            Serial.println(F("INFO: End of show. Executing homing sequence."));
+            graoully.home();
+            graoully.reset();
+        }
+
+        wasPlaying_ = (currentState == PlayerState::PLAYING);
+
+        if (currentState == PlayerState::PLAYING) return;
 
         unsigned long currentMillis = millis();
 
@@ -51,8 +64,9 @@ public:
 
         // Daytime block: 11:00 to 17:00 (Every 15 minutes)
         if (now.hour >= 11 && now.hour < 17) {
-            if (now.minute % 15 == 0) {
+            if (now.minute % 1 == 0) {
                 lastTriggeredMinute_ = currentTotalMinutes;
+                allowNightEffects = false;
                 Serial.println(F("INFO: Triggering daytime preset."));
                 player.playRandomPreset();
             }
@@ -61,6 +75,7 @@ public:
         else if (now.hour >= 17 && now.hour < eveningEndHour) {
             if (now.minute % 10 == 0) {
                 lastTriggeredMinute_ = currentTotalMinutes;
+                allowNightEffects = true;
                 Serial.println(F("INFO: Triggering nighttime preset."));
                 player.playRandomPreset();
             }
@@ -74,6 +89,7 @@ private:
     unsigned long lastPollMs_ = 0;
     unsigned long lastMillis_ = 0;
     int lastTriggeredMinute_ = -1;
+    bool wasPlaying_ = false;
 };
 
 #endif
