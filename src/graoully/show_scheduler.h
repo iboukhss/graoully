@@ -64,9 +64,9 @@ public:
 
         // Daytime block: 11:00 to 17:00 (Every 15 minutes)
         if (now.hour >= 11 && now.hour < 17) {
-            if (now.minute % 1 == 0) {
+            if (now.minute % 12 == 0) {
                 lastTriggeredMinute_ = currentTotalMinutes;
-                allowNightEffects = false;
+                allowNightEffects = true;
                 Serial.println(F("INFO: Triggering daytime preset."));
                 player.playRandomPreset();
             }

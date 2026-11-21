@@ -7,7 +7,7 @@ Dragon graoully;
 ShowPlayer player;
 ShowScheduler scheduler;
 
-ControlMode currentMode = ControlMode::MANUAL;
+ControlMode currentMode = ControlMode::AUTO;
 
 bool allowNightEffects = false;
 bool isCapturingSequence = false;
@@ -308,6 +308,26 @@ void handleModeCommand(const String& action)
     }
 }
 
+void handleNightCommand(const String& action)
+{
+    if (action == "on") {
+        allowNightEffects = true;
+        Serial.println(F("OK: Night effects enabled."));
+    }
+    else if (action == "off") {
+        allowNightEffects = false;
+        Serial.println(F("OK: Night effects disabled."));
+    }
+    else if (action == "status") {
+        Serial.print(F("Night effects: "));
+        Serial.println(allowNightEffects ? F("ENABLED") : F("DISABLED"));
+    }
+    else {
+        Serial.print(F("ERROR: Unknown night action ->"));
+        Serial.println(action);
+    }
+}
+
 void executeCommand(const String& target, const String& action)
 {
     Serial.print(F("Received -> "));
@@ -332,6 +352,9 @@ void executeCommand(const String& target, const String& action)
     }
     else if (target == "mp3") {
         handleAudioCommand(action);
+    }
+    else if (target == "night") {
+        handleNightCommand(action);
     }
     else {
         Serial.print(F("ERROR: Unknown target -> "));

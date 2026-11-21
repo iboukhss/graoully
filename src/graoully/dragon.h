@@ -32,7 +32,7 @@ struct Dragon {
         wingsBottom     ("wings_bot", -1, -1, -1, 150.0, 14.0),
         headPan         ("pan",        8, 38, 46, 100.0, 5.5),  // Needs adjustment!
         headTilt        ("tilt",       2, 30, 22, 300.0, 14.0),
-        headRoll        ("roll",       9, 39, 47, 50.0, 14.0),
+        headRoll        ("roll",       9, 39, 47, 50.0, 13.0),
         eyelids         ("eyelids",    4, 32, 24, 50.0, 14.0),  // This is just a guess
         ears            ("ears",      10, 40, 48, 50.0, 14.0),  // Also a guess
         mouth           ("mouth",      3, 31, 23, 50.0, 14.0),
@@ -114,12 +114,12 @@ struct Dragon {
     void reset() {
         stop();
         headTilt.moveTo(0.3);
-        headPan.moveTo(0.5);
+        headPan.moveTo(0.7);
         headRoll.moveTo(0.5);
         mouth.moveTo(0);
         ears.moveTo(1);
         eyelids.moveTo(1);
-        eyes.on();
+        eyes.off();
         breath.off();
         waitUntilFinished();
     }

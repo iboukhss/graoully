@@ -42,6 +42,8 @@ public:
 
         mp3_.playFileNum(fileNum);
 
+        delay(300);
+
         Serial.print(F("[INFO] Currently playing: "));
         Serial.println(mp3_.getFileName());
     }

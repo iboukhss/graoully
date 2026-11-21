@@ -61,6 +61,60 @@ const ShowItem PROGMEM kJc1SeqData[] = {
 
 constexpr int kJc1SeqCount = sizeof(kJc1SeqData) / sizeof(kJc1SeqData[0]);
 
+const ShowItem PROGMEM kHissRoarSeqData[] = {
+    { 0,     "eyes",    "on"     },
+    { 0,     "eyelids", "1.0"    },
+    { 0,     "pan",     "0.7"    },
+    { 0,     "tilt",    "0.1"    },
+    { 0,     "roll",    "1.0"    },
+    { 2000,  "mp3",     "play?2" },
+    { 4000,  "mouth",   "1.0"    },
+    { 5000,  "breath",  "on"     },
+    { 5000,  "smoke",   "3000"   },
+};
+
+constexpr int kHissRoarSeqCount = sizeof(kHissRoarSeqData) / sizeof(kHissRoarSeqData[0]);
+
+const ShowItem PROGMEM kSleepGruntSeqData[] = {
+    { 0,     "eyes",    "off"     },
+    { 0,     "eyelids", "0.0"    },
+    { 0,     "tilt",    "0.1"    },
+    { 0,     "pan",     "0.7"    },
+    { 0,     "roll",    "1.0"    },
+    { 0,     "mouth",   "0.0"    },
+    { 2000,  "breath",  "on"     },
+    { 2000,  "mp3",     "play?4" },
+    { 2000,  "mouth",   "0.1"    },
+    { 2000,  "smoke",   "1500"   },
+    { 4000,  "breath",  "off"    },
+    { 4000,  "mouth",   "0.0"    },
+
+    // Second puff
+    { 8000,   "pan",     "0.5"   },
+    { 8000,   "roll",    "0.8"   },
+    { 10000,  "breath",  "on"    },
+    { 10000,  "mouth",   "0.1"   },
+    { 10000,  "smoke",   "1500"  },
+    { 12000,  "breath",  "off"   },
+    { 12000,  "mouth",   "0.0"   },
+
+    // Third puff
+    { 18000,   "pan",     "0.9"  },
+    { 18000,   "roll",    "0.3"  },
+    { 20000,  "breath",  "on"    },
+    { 20000,  "mouth",   "0.1"   },
+    { 20000,  "smoke",   "1500"  },
+    { 22000,  "breath",  "off"   },
+    { 22000,  "mouth",   "0.0"   },
+
+    // Final
+    { 26000, "pan",     "0.7"  },
+    { 26000, "roll",    "1.0"  },
+    { 28000, "mouth",   "0.1" }
+};
+
+constexpr int kSleepGruntSeqCount = sizeof(kSleepGruntSeqData) / sizeof(kSleepGruntSeqData[0]);
+
 // Vibecoded show presets
 
 // 1. SNOOZE: A restless, twitchy sleeping shift
@@ -98,7 +152,7 @@ const ShowItem PROGMEM kSurpriseSeqData[] = {
     { 200,   "tilt",    "0.8"  },
     { 200,   "pan",     "0.5"  },
     { 400,   "mouth",   "0.6"  },
-    { 600,   "smoke",   "2000" },
+    { 600,   "smoke",   "3000" },
     { 3000,  "mouth",   "0.1"  },
     { 5000,  "eyelids", "0.4"  },
     { 7000,  "ears",    "0.3"  }
@@ -110,8 +164,9 @@ const ShowItem PROGMEM kGrowlSeqData[] = {
     { 0,     "breath",  "on"   },
     { 0,     "ears",    "0.2"  },
     { 1000,  "tilt",    "0.2"  },
+    { 2000,  "breath",  "on"   },
     { 2000,  "mouth",   "0.5"  },
-    { 3000,  "smoke",   "4000" },
+    { 2000,  "smoke",   "4000" },
     { 4000,  "roll",    "0.6"  },
     { 6000,  "mouth",   "0.0"  },
     { 8000,  "pan",     "0.4"  },
@@ -121,14 +176,16 @@ constexpr int kGrowlSeqCount = sizeof(kGrowlSeqData) / sizeof(kGrowlSeqData[0]);
 
 // 5. STRETCH: A slow yawn and physical reset
 const ShowItem PROGMEM kStretchSeqData[] = {
-    { 0,     "pan",     "0.5" },
-    { 0,     "roll",    "0.5" },
-    { 1500,  "tilt",    "0.8" },
-    { 3000,  "mouth",   "0.8" },
-    { 5000,  "ears",    "0.9" },
-    { 7000,  "mouth",   "0.0" },
-    { 9000,  "tilt",    "0.5" },
-    { 11000, "ears",    "0.0" }
+    { 0,     "pan",     "0.5"  },
+    { 0,     "roll",    "0.5"  },
+    { 1500,  "tilt",    "0.8"  },
+    { 3000,  "breath",  "on"   },
+    { 3000,  "mouth",   "0.8"  },
+    { 3000,  "smoke",   "3000" },
+    { 5000,  "ears",    "0.9"  },
+    { 7000,  "mouth",   "0.0"  },
+    { 9000,  "tilt",    "0.5"  },
+    { 11000, "ears",    "0.0"  }
 };
 constexpr int kStretchSeqCount = sizeof(kStretchSeqData) / sizeof(kStretchSeqData[0]);
 
@@ -155,17 +212,19 @@ const ShowItem PROGMEM kBlinkSeqData[] = {
 constexpr int kBlinkSeqCount = sizeof(kBlinkSeqData) / sizeof(kBlinkSeqData[0]);
 
 const ShowPreset PROGMEM kPresetLibrary[] = {
-    { "SLEEP",    kSleepSeqData,    kSleepSeqCount    },
-    { "ALERT",    kAlertSeqData,    kAlertSeqCount    },
-    { "WAKE",     kWakeSeqData,     kWakeSeqCount     },
-    { "JC1",      kJc1SeqData,      kJc1SeqCount      },
-    { "SNOOZE",   kSnoozeSeqData,   kSnoozeSeqCount   },
-    { "CURIOUS",  kCuriousSeqData,  kCuriousSeqCount  },
-    { "SURPRISE", kSurpriseSeqData, kSurpriseSeqCount },
-    { "GROWL",    kGrowlSeqData,    kGrowlSeqCount    },
-    { "STRETCH",  kStretchSeqData,  kStretchSeqCount  },
-    { "SENTRY",   kSentrySeqData,   kSentrySeqCount   },
-    { "BLINK",    kBlinkSeqData,    kBlinkSeqCount    }
+    { "SLEEP",      kSleepSeqData,      kSleepSeqCount      },
+    { "ALERT",      kAlertSeqData,      kAlertSeqCount      },
+    { "WAKE",       kWakeSeqData,       kWakeSeqCount       },
+    { "JC1",        kJc1SeqData,        kJc1SeqCount        },
+    { "HISSROAR",   kHissRoarSeqData,   kHissRoarSeqCount   },
+    { "SLEEPGRUNT", kSleepGruntSeqData, kSleepGruntSeqCount },
+    { "SNOOZE",     kSnoozeSeqData,     kSnoozeSeqCount     },
+    { "CURIOUS",    kCuriousSeqData,    kCuriousSeqCount    },
+    { "SURPRISE",   kSurpriseSeqData,   kSurpriseSeqCount   },
+    { "GROWL",      kGrowlSeqData,      kGrowlSeqCount      },
+    { "STRETCH",    kStretchSeqData,    kStretchSeqCount    },
+    { "SENTRY",     kSentrySeqData,     kSentrySeqCount     },
+    { "BLINK",      kBlinkSeqData,      kBlinkSeqCount      }
 };
 
 constexpr int kNumPresets = sizeof(kPresetLibrary) / sizeof(kPresetLibrary[0]);
