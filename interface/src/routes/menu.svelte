@@ -47,6 +47,12 @@
 
 	let menuItems = $state([
 		{
+			title: 'Dragon Control',
+			icon: Control,
+			href: '/dragon',
+			feature: true
+		},
+		{
 			title: 'Demo App',
 			icon: Control,
 			href: '/demo',
