@@ -3,6 +3,8 @@
 
 #include <assert.h>
 
+#include "log.h"
+
 extern void executeCommand(const String& target, const String& action);
 
 struct ShowItem {
@@ -25,7 +27,7 @@ public:
 
     void append(unsigned long offset, const String& target, const String& action) {
         if (count_ >= kMaxShowCapacity) {
-            Serial.println(F("WARNING: Maximum show capacity reached!"));
+            LOG_WARN(F("show: max capacity reached"));
             return;
         }
 
@@ -50,10 +52,10 @@ public:
             count_++;
         }
 
-        Serial.print(F("Loaded preset: "));
+        LOG_INFO_BEGIN();
+        Serial.print(F("show: loaded preset: "));
         Serial.print(name_);
-        Serial.print(F(", Items: "));
-        Serial.println(count_);
+        LOG_INFO_END();
     }
 
     void printToSerial() const {
@@ -71,7 +73,7 @@ public:
             Serial.println(buffer_[i].action);
         }
 
-        Serial.println(F("-------------------------------------"));
+        Serial.println(F("-------------------------------------------------------"));
     }
 
     const String& getName() const { return name_; }

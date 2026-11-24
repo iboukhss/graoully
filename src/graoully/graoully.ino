@@ -10,7 +10,7 @@ ShowScheduler scheduler;
 
 ControlMode currentMode = ControlMode::AUTO;
 
-bool allowNightEffects = false;
+bool allowNightEffects = true;
 bool isCapturingSequence = false;
 
 // List of available serial commands:
@@ -18,9 +18,9 @@ bool isCapturingSequence = false;
 // time:print
 // time:set?yyyy,mm,dd,hh,mm,ss
 
-// graoully:home
-// graoully:stop
-// graoully:roar
+// drag:home
+// drag:reset
+// drag:stop
 
 // motor:home
 // motor:stop
@@ -328,16 +328,16 @@ void handleModeCommand(const String& action)
 {
     if (action == "auto") {
         currentMode = ControlMode::AUTO;
-        LOG_INFO(F("mode: switched to AUTO"));
+        LOG_INFO(F("mode: switched to auto mode"));
     }
     else if (action == "manual") {
         currentMode = ControlMode::MANUAL;
-        LOG_INFO(F("mode: switched to MANUAL"));
+        LOG_INFO(F("mode: switched to manual mode"));
     }
     else if (action == "status") {
         LOG_INFO_BEGIN();
-        Serial.print(F("mode: currently set to: "));
-        Serial.print(currentMode == ControlMode::AUTO ? F("AUTO") : F("MANUAL"));
+        Serial.print(F("mode: current control mode: "));
+        Serial.print(currentMode == ControlMode::AUTO ? F("auto") : F("manual"));
         LOG_INFO_END();
     }
     else {
@@ -374,6 +374,13 @@ void handleNightCommand(const String& action)
 
 void executeCommand(const String& target, const String& action)
 {
+    LOG_DBG_BEGIN();
+    Serial.print(F("cmd: "));
+    Serial.print(target);
+    Serial.print(" ");
+    Serial.print(action);
+    LOG_DBG_END();
+
     if (target == "drag") {
         handleGraoullyCommand(action);
     }

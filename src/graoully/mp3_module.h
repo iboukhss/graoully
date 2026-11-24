@@ -16,11 +16,11 @@ public:
 
         for (int attempt = 1; attempt <= kMaxAttempts; attempt++) {
             LOG_INFO_BEGIN();
-            Serial.print(F("mp3: initializing (attempt "));
+            Serial.print(F("mp3: initializing... (attempt "));
             Serial.print(attempt);
             Serial.print(F("/"));
             Serial.print(kMaxAttempts);
-            Serial.print(F(")..."));
+            Serial.print(F(")"));
             LOG_INFO_END();
 
             if (mp3_.begin(serial_)) {

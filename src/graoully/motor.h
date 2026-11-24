@@ -1,6 +1,8 @@
 #ifndef MOTOR_H
 #define MOTOR_H
 
+#include "log.h"
+
 // Example motor 1
 
 // Stroke:     50mm
@@ -41,7 +43,7 @@ public:
         if (pinEna_ == -1) return;
 
         if (isMoving_) {
-            Serial.println(F("WARNING: Motor is busy. 'home' command ignored."));
+            LOG_WARN(F("motor: busy, home command ignored"));
             return;
         }
 
@@ -94,7 +96,7 @@ public:
     }
 
     void printToSerial() const {
-        Serial.print(F("Motor: "));
+        Serial.print(F("Motor name: "));
         Serial.print(name_);
         Serial.print(F(", Stroke: "));
         Serial.print(strokeMm_);

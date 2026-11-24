@@ -11,7 +11,7 @@ struct TimeOfDay {
     uint8_t second;
 };
 
-enum class DayOfWeek {
+enum class DayOfWeek : uint8_t {
     SUNDAY = 0,
     MONDAY,
     TUESDAY,
@@ -28,11 +28,11 @@ public:
 
         for (int attempt = 1; attempt <= kMaxAttempts; attempt++) {
             LOG_INFO_BEGIN();
-            Serial.print(F("rtc: initializing (attempt "));
+            Serial.print(F("rtc: initializing... (attempt "));
             Serial.print(attempt);
             Serial.print(F("/"));
             Serial.print(kMaxAttempts);
-            Serial.print(F(")..."));
+            Serial.print(F(")"));
             LOG_INFO_END();
 
             if (rtc_.begin()) {

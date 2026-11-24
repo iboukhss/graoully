@@ -4,6 +4,8 @@
 #include "show.h"
 #include "show_presets.h"
 
+extern Dragon graoully;
+
 enum class PlayerState {
     STOPPED,
     PLAYING,
@@ -15,8 +17,10 @@ public:
     void play(const String& presetName) {
         const ShowPreset* ptr = getPresetByName(presetName);
         if (!ptr) {
-            Serial.print(F("ERROR: Show preset not found -> "));
-            Serial.println(presetName);
+            LOG_ERR_BEGIN();
+            Serial.print(F("player: preset not found: "));
+            Serial.print(presetName);
+            LOG_ERR_END();
             return;
         }
 
@@ -26,8 +30,10 @@ public:
         currentIndex_ = 0;
         state_ = PlayerState::PLAYING;
 
-        Serial.print(F("Currently playing: "));
-        Serial.println(currentShow_->getName());
+        LOG_INFO_BEGIN();
+        Serial.print(F("player: currently playing: "));
+        Serial.print(currentShow_->getName());
+        LOG_INFO_END();
 
         startTimeMs_ = millis();
     }
@@ -35,7 +41,7 @@ public:
     void playRandomPreset() {
         const ShowPreset* ptr = getRandomPreset();
         if (!ptr) {
-            Serial.println(F("ERROR: No presets available!"));
+            LOG_ERR(F("player: no presets available"));
             return;
         }
 
@@ -45,15 +51,17 @@ public:
         currentIndex_ = 0;
         state_ = PlayerState::PLAYING;
 
-        Serial.print(F("Currently playing (randomized preset): "));
-        Serial.println(currentShow_->getName());
+        LOG_INFO_BEGIN();
+        Serial.print(F("player: currently playing (random): "));
+        Serial.print(currentShow_->getName());
+        LOG_INFO_END();
 
         startTimeMs_ = millis();
     }
 
     void playSerialSlot() {
         if (!serialSlot_.getCount()) {
-            Serial.println(F("ERROR: Serial slot is empty! Nothing to do."));
+            LOG_ERR(F("player: serial slot is empty"));
             return;
         }
 
@@ -61,8 +69,10 @@ public:
         currentIndex_ = 0;
         state_ = PlayerState::PLAYING;
 
-        Serial.print(F("Currently playing (serial): "));
-        Serial.println(serialSlot_.getName());
+        LOG_INFO_BEGIN();
+        Serial.print(F("player: currently playing (serial slot): "));
+        Serial.print(serialSlot_.getName());
+        LOG_INFO_END();
 
         startTimeMs_ = millis();
     }
@@ -72,7 +82,7 @@ public:
 
         state_ = PlayerState::PAUSED;
 
-        Serial.println(F("Show paused."));
+        LOG_INFO(F("player: show paused"));
     }
 
     void stop() {
@@ -80,7 +90,7 @@ public:
         currentIndex_ = 0;
         state_ = PlayerState::STOPPED;
 
-        Serial.println(F("Show stopped."));
+        LOG_INFO(F("player: show stopped"));
     }
 
     void update() {
@@ -97,8 +107,9 @@ public:
         }
 
         if (currentIndex_ >= currentShow_->getCount()) {
-            Serial.println(F("Show finished playing. Stopping now."));
             stop();
+            graoully.home();
+            graoully.reset();
         }
     }
 

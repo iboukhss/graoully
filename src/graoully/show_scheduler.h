@@ -10,7 +10,6 @@ enum class ControlMode {
 
 extern ControlMode currentMode;
 extern ShowPlayer player;
-extern Dragon graoully;
 extern bool allowNightEffects;
 
 class ShowScheduler {
@@ -23,26 +22,20 @@ public:
     void update() {
         if (currentMode != ControlMode::AUTO) return;
 
-        PlayerState currentState = player.getState();
-
-        if (wasPlaying_ && currentState != PlayerState::PLAYING) {
-            Serial.println(F("INFO: End of show. Executing homing sequence."));
-            graoully.home();
-            graoully.reset();
-        }
-
-        wasPlaying_ = (currentState == PlayerState::PLAYING);
-
-        if (currentState == PlayerState::PLAYING) return;
+        if (player.getState() == PlayerState::PLAYING) return;
 
         unsigned long currentMillis = millis();
 
         if (!rtc_.isReady()) {
-            const unsigned long kIntervalMs = 10UL * 60UL * 1000UL;
-
+            const unsigned long kIntervalMin = 1UL;
+            const unsigned long kIntervalMs = kIntervalMin * 60UL * 1000UL;
             if (currentMillis - lastMillis_ >= kIntervalMs) {
                 lastMillis_ = currentMillis;
-                Serial.println(F("INFO: RTC offline. Falling back to scheduling shows every 10 minutes."));
+                LOG_INFO_BEGIN();
+                Serial.print(F("sched: RTC offline. Falling back to scheduling shows every "));
+                Serial.print(kIntervalMin);
+                Serial.print(F(" minutes."));
+                LOG_INFO_END();
                 player.playRandomPreset();
             }
             return;
@@ -65,18 +58,18 @@ public:
         // Daytime block: 11:00 to 17:00 (Every 15 minutes)
         if (now.hour >= 11 && now.hour < 17) {
             if (now.minute % 5 == 0) {
+                LOG_INFO(F("sched: Scheduling daytime show"));
                 lastTriggeredMinute_ = currentTotalMinutes;
                 allowNightEffects = false;
-                Serial.println(F("INFO: Triggering daytime preset."));
                 player.playRandomPreset();
             }
         }
         // Evening block: 17:00 to eveningEndHour (Every 10 minutes)
         else if (now.hour >= 17 && now.hour < eveningEndHour) {
             if (now.minute % 10 == 0) {
+                LOG_INFO(F("sched: Scheduling nighttime show"));
                 lastTriggeredMinute_ = currentTotalMinutes;
                 allowNightEffects = true;
-                Serial.println(F("INFO: Triggering nighttime preset."));
                 player.playRandomPreset();
             }
         }
@@ -89,7 +82,6 @@ private:
     unsigned long lastPollMs_ = 0;
     unsigned long lastMillis_ = 0;
     int lastTriggeredMinute_ = -1;
-    bool wasPlaying_ = false;
 };
 
 #endif
