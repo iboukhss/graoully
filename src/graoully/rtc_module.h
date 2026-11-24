@@ -124,7 +124,7 @@ public:
         if (strcmp(dayStr, "Friday") == 0) return DayOfWeek::FRIDAY;
         if (strcmp(dayStr, "Saturday") == 0) return DayOfWeek::SATURDAY;
 
-        return DayOfWeek::SUNDAY;
+        DRAGON_UNREACHABLE();
     }
 
     bool isReady() const { return isReady_; }

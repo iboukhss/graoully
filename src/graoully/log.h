@@ -20,4 +20,32 @@
 #define LOG_DBG_BEGIN()  do { Serial.print(F("[DBG ] ")); } while (0)
 #define LOG_DBG_END()    do { Serial.println(); } while (0)
 
+#define DRAGON_ASSERT(expr)                         \
+    do {                                            \
+        if (!(expr)) {                              \
+            LOG_ERR_BEGIN();                        \
+            Serial.print(F("assert: Failed '"));    \
+            Serial.print(F(#expr));                 \
+            Serial.print(F("' at "));               \
+            Serial.print(__FILE__);                 \
+            Serial.print(F(":"));                   \
+            Serial.print(__LINE__);                 \
+            LOG_ERR_END();                          \
+            Serial.flush();                         \
+            abort();                                \
+        }                                           \
+    } while (0)
+
+#define DRAGON_UNREACHABLE()                        \
+    do {                                            \
+        LOG_ERR_BEGIN();                            \
+        Serial.print(F("assert: Unreachable at ")); \
+        Serial.print(__FILE__);                     \
+        Serial.print(F(":"));                       \
+        Serial.print(__LINE__);                     \
+        LOG_ERR_END();                              \
+        Serial.flush();                             \
+        abort();                                    \
+    } while(0)
+
 #endif

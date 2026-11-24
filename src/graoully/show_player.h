@@ -96,7 +96,7 @@ public:
     void update() {
         if (state_ != PlayerState::PLAYING) return;
 
-        assert(currentShow_ && "currentShow_ cannot be null!");
+        DRAGON_ASSERT(currentShow_ && "currentShow_ cannot be null!");
 
         const ShowItem& item = currentShow_->getItemAt(currentIndex_);
         unsigned long targetTriggerTimeMs = startTimeMs_ + item.offsetMs;

@@ -59,6 +59,8 @@ struct Dragon {
     }
 
     void begin() {
+        DRAGON_ASSERT(!hasDuplicateNames());
+
         for (int i = 0; i < kNumMotors; i++) {
             allMotors[i]->begin();
         }

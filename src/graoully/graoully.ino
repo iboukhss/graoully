@@ -418,6 +418,7 @@ void setup()
     delay(3000);
 
     randomSeed(analogRead(A15));
+
     scheduler.begin();
     graoully.begin();
     graoully.home();
