@@ -81,7 +81,7 @@ void handleAudioCommand(const String& action)
     }
     else {
         LOG_ERR_BEGIN();
-        Serial.print(F("mp3: unknown action: "));
+        Serial.print(F("mp3: Unknown action: "));
         Serial.print(action);
         LOG_ERR_END();
     }
@@ -107,7 +107,7 @@ void handleShowCommand(const String& action)
     }
     else {
         LOG_ERR_BEGIN();
-        Serial.print(F("show: unknown action: "));
+        Serial.print(F("show: Unknown action: "));
         Serial.print(action);
         LOG_ERR_END();
     }
@@ -136,7 +136,7 @@ void handleSeqCommand(const String& action)
 
             if (!ptr) {
                 LOG_ERR_BEGIN();
-                Serial.print(F("seq: preset not found: "));
+                Serial.print(F("seq: Preset not found: "));
                 Serial.print(parsedArg);
                 LOG_ERR_END();
                 return;
@@ -152,7 +152,7 @@ void handleSeqCommand(const String& action)
     }
     else {
         LOG_ERR_BEGIN();
-        Serial.print(F("seq: unknown action: "));
+        Serial.print(F("seq: Unknown action: "));
         Serial.print(action);
         LOG_ERR_END();
     }
@@ -171,7 +171,7 @@ void handleCaptureLine(const String& input)
 
     if (firstComma == -1 || secondComma == -1) {
         LOG_ERR_BEGIN();
-        Serial.print(F("seq: invalid CSV line: "));
+        Serial.print(F("seq: Invalid CSV line: "));
         Serial.print(input);
         LOG_ERR_END();
         return;
@@ -184,7 +184,7 @@ void handleCaptureLine(const String& input)
     player.getSerialSlot().append(offset, target, action);
 
     LOG_DBG_BEGIN();
-    Serial.print(F("seq: appended offset="));
+    Serial.print(F("seq: Appended offset="));
     Serial.print(offset);
     Serial.print(F(", target="));
     Serial.print(target);
@@ -193,34 +193,14 @@ void handleCaptureLine(const String& input)
     LOG_DBG_END();
 }
 
-bool isLedCommand(const String& target)
-{
-    for (int i = 0; i < sizeof(graoully.allLeds) / sizeof(graoully.allLeds[0]); i++) {
-        if (target == graoully.allLeds[i]->getName()) {
-            return true;
-        }
-    }
-    return false;
-}
-
-Led* getLed(const String& target)
-{
-    for (int i = 0; i < sizeof(graoully.allLeds) / sizeof(graoully.allLeds[0]); i++) {
-        if (target == graoully.allLeds[i]->getName()) {
-            return graoully.allLeds[i];
-        }
-    }
-    return nullptr;
-}
-
 void handleLedCommand(const String& target, const String& action)
 {
     if (!allowNightEffects) {
-        LOG_WARN(F("led: blocked (night effects disabled)"));
+        LOG_WARN(F("led: Blocked (night effects disabled)"));
         return;
     }
 
-    Led* led = getLed(target);
+    Led* led = graoully.getLed(target);
 
     if (action == "on") {
         led->on();
@@ -234,29 +214,9 @@ void handleLedCommand(const String& target, const String& action)
     }
 }
 
-bool isMotorCommand(const String& target)
-{
-    for (int i = 0; i < sizeof(graoully.allMotors) / sizeof(graoully.allMotors[0]); i++) {
-        if (target == graoully.allMotors[i]->getName()) {
-            return true;
-        }
-    }
-    return false;
-}
-
-Motor* getMotor(const String& target)
-{
-    for (int i = 0; i < sizeof(graoully.allMotors) / sizeof(graoully.allMotors[0]); i++) {
-        if (target == graoully.allMotors[i]->getName()) {
-            return graoully.allMotors[i];
-        }
-    }
-    return nullptr;
-}
-
 void handleMotorCommand(const String& target, const String& action)
 {
-    Motor* motor = getMotor(target);
+    Motor* motor = graoully.getMotor(target);
 
     if (action == "home") {
         motor->home();
@@ -291,12 +251,12 @@ void handleTimeCommand(const String& action)
             scheduler.getClock().setDateTime(y, m, d, hh, mm, ss);
         }
         else {
-            LOG_ERR(F("time: invalid format - expected YYYY,MM,DD,HH,MM,SS"));
+            LOG_ERR(F("time: Invalid format - expected: YYYY,MM,DD,HH,MM,SS"));
         }
     }
     else {
         LOG_ERR_BEGIN();
-        Serial.print(F("time: unknown action: "));
+        Serial.print(F("time: Unknown action: "));
         Serial.print(action);
         LOG_ERR_END();
     }
@@ -318,7 +278,7 @@ void handleGraoullyCommand(const String& action)
     }
     else {
         LOG_ERR_BEGIN();
-        Serial.print(F("drag: unknown action: "));
+        Serial.print(F("drag: Unknown action: "));
         Serial.print(action);
         LOG_ERR_END();
     }
@@ -328,21 +288,21 @@ void handleModeCommand(const String& action)
 {
     if (action == "auto") {
         currentMode = ControlMode::AUTO;
-        LOG_INFO(F("mode: switched to auto mode"));
+        LOG_INFO(F("mode: Switched to 'auto' mode"));
     }
     else if (action == "manual") {
         currentMode = ControlMode::MANUAL;
-        LOG_INFO(F("mode: switched to manual mode"));
+        LOG_INFO(F("mode: Switched to 'manual' mode"));
     }
     else if (action == "status") {
         LOG_INFO_BEGIN();
-        Serial.print(F("mode: current control mode: "));
+        Serial.print(F("mode: Current control mode: "));
         Serial.print(currentMode == ControlMode::AUTO ? F("auto") : F("manual"));
         LOG_INFO_END();
     }
     else {
         LOG_ERR_BEGIN();
-        Serial.print(F("mode: unknown action: "));
+        Serial.print(F("mode: Unknown action: "));
         Serial.print(action);
         LOG_ERR_END();
     }
@@ -352,21 +312,21 @@ void handleNightCommand(const String& action)
 {
     if (action == "on") {
         allowNightEffects = true;
-        LOG_INFO(F("night: effects enabled"));
+        LOG_INFO(F("night: Effects enabled"));
     }
     else if (action == "off") {
         allowNightEffects = false;
-        LOG_INFO(F("night: effects disabled"));
+        LOG_INFO(F("night: Effects disabled"));
     }
     else if (action == "status") {
         LOG_INFO_BEGIN();
-        Serial.print(F("night: effects status: "));
+        Serial.print(F("night: Effects status: "));
         Serial.print(allowNightEffects ? F("enabled") : F("disabled"));
         LOG_INFO_END();
     }
     else {
         LOG_ERR_BEGIN();
-        Serial.print(F("night: unknown action: "));
+        Serial.print(F("night: Unknown action: "));
         Serial.print(action);
         LOG_ERR_END();
     }
@@ -384,10 +344,10 @@ void executeCommand(const String& target, const String& action)
     if (target == "drag") {
         handleGraoullyCommand(action);
     }
-    else if (isMotorCommand(target)) {
+    else if (graoully.getMotor(target) != nullptr) {
         handleMotorCommand(target, action);
     }
-    else if (isLedCommand(target)) {
+    else if (graoully.getLed(target) != nullptr) {
         handleLedCommand(target, action);
     }
     else if (target == "show") {
@@ -404,7 +364,7 @@ void executeCommand(const String& target, const String& action)
     }
     else {
         LOG_ERR_BEGIN();
-        Serial.print(F("cmd: unknown target: "));
+        Serial.print(F("cmd: Unknown target: "));
         Serial.print(target);
         LOG_ERR_END();
     }
@@ -441,7 +401,7 @@ void handleSerialCommands()
             }
             
             if (currentMode == ControlMode::AUTO) {
-                LOG_ERR(F("cmd: command blocked (switch to MANUAL mode)"));
+                LOG_ERR(F("cmd: Command blocked (switch to manual mode)"));
                 return;
             }
             
@@ -463,7 +423,7 @@ void setup()
     graoully.home();
     graoully.reset();
 
-    LOG_INFO(F("setup: done - Graoully ready"));
+    LOG_INFO(F("setup: Initialization finished - Graoully is ready"));
 }
 
 void loop()

@@ -43,7 +43,7 @@ public:
         if (pinEna_ == -1) return;
 
         if (isMoving_) {
-            LOG_WARN(F("motor: busy, home command ignored"));
+            LOG_WARN(F("motor: Motor busy - home command ignored"));
             return;
         }
 

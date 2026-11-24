@@ -91,7 +91,7 @@ struct Dragon {
     }
 
     void estop() {
-        LOG_WARN(F("drag: triggering emergency stop"));
+        LOG_WARN(F("drag: Triggering emergency stop!"));
         stop();
     }
 
@@ -109,7 +109,7 @@ struct Dragon {
     }
 
     void home() {
-        LOG_INFO(F("drag: starting homing sequence..."));
+        LOG_INFO(F("drag: Starting homing sequence..."));
         stop();
 
         for (int i = 0; i < kNumMotors; i++) {
@@ -117,11 +117,11 @@ struct Dragon {
         }
 
         waitUntilFinished();
-        LOG_INFO(F("drag: homing done"));
+        LOG_INFO(F("drag: Homing finished"));
     }
 
     void reset() {
-        LOG_INFO(F("drag: starting reset sequence..."));
+        LOG_INFO(F("drag: Starting reset sequence..."));
         stop();
 
         headTilt.moveTo(0.3);
@@ -133,7 +133,7 @@ struct Dragon {
         eyes.on();
 
         waitUntilFinished();
-        LOG_INFO(F("drag: reset done"));
+        LOG_INFO(F("drag: Reset finished"));
     }
 
     void printStatus() {
@@ -142,6 +142,54 @@ struct Dragon {
             allMotors[i]->printToSerial();
         }
         Serial.println(F("-------------------------------------------------------"));
+    }
+
+    Motor* getMotor(const String& name)
+    {
+        for (int i = 0; i < kNumMotors; i++) {
+            if (name== allMotors[i]->getName()) {
+                return allMotors[i];
+            }
+        }
+        return nullptr;
+    }
+
+    Led* getLed(const String& name)
+    {
+        for (int i = 0; i < kNumLeds; i++) {
+            if (name == allLeds[i]->getName()) {
+                return allLeds[i];
+            }
+        }
+        return nullptr;
+    }
+
+    bool hasDuplicateNames() const {
+        for (int i = 0; i < kNumMotors; i++) {
+            for (int j = i + 1; j < kNumMotors; j++) {
+                if (allMotors[i]->getName() == allMotors[j]->getName()) {
+                    return true;
+                }
+            }
+        }
+
+        for (int i = 0; i < kNumLeds; i++) {
+            for (int j = i + 1; j < kNumLeds; j++) {
+                if (allLeds[i]->getName() == allLeds[j]->getName()) {
+                    return true;
+                }
+            }
+        }
+
+        for (int i = 0; i < kNumMotors; i++) {
+            for (int j = 0; j < kNumLeds; j++) {
+                if (allMotors[i]->getName() == allLeds[j]->getName()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 };
 

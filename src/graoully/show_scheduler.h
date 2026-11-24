@@ -32,9 +32,9 @@ public:
             if (currentMillis - lastMillis_ >= kIntervalMs) {
                 lastMillis_ = currentMillis;
                 LOG_INFO_BEGIN();
-                Serial.print(F("sched: RTC offline. Falling back to scheduling shows every "));
+                Serial.print(F("sched: RTC offline - falling back to scheduling shows every "));
                 Serial.print(kIntervalMin);
-                Serial.print(F(" minutes."));
+                Serial.print(F(" minutes"));
                 LOG_INFO_END();
                 player.playRandomPreset();
             }

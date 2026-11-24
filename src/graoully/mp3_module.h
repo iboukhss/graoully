@@ -16,7 +16,7 @@ public:
 
         for (int attempt = 1; attempt <= kMaxAttempts; attempt++) {
             LOG_INFO_BEGIN();
-            Serial.print(F("mp3: initializing... (attempt "));
+            Serial.print(F("mp3: Initializing... (attempt "));
             Serial.print(attempt);
             Serial.print(F("/"));
             Serial.print(kMaxAttempts);
@@ -31,7 +31,7 @@ public:
 
                 isReady_ = true;
 
-                LOG_INFO(F("mp3: initialized successfully"));
+                LOG_INFO(F("mp3: Initialized successfully"));
                 return;
             }
 
@@ -40,12 +40,12 @@ public:
 
         isReady_ = false;
 
-        LOG_ERR(F("mp3: failed to initialize MP3 module"));
+        LOG_ERR(F("mp3: Failed to initialize MP3 module"));
     }
 
     void playFileNumber(int fileNum) {
         if (!isReady_) {
-            LOG_ERR(F("mp3: command ignored (module offline)"));
+            LOG_ERR(F("mp3: Command ignored (module offline)"));
             return;
         }
 
@@ -54,7 +54,7 @@ public:
         delay(300);
 
         LOG_INFO_BEGIN();
-        Serial.print(F("mp3: currently playing: #"));
+        Serial.print(F("mp3: Currently playing: #"));
         Serial.print(fileNum);
         Serial.print(F(" - "));
         Serial.print(mp3_.getFileName());
@@ -63,14 +63,14 @@ public:
 
     void setVolume(int volume) {
         if (!isReady_) {
-            LOG_ERR(F("mp3: command ignored (module offline)"));
+            LOG_ERR(F("mp3: Command ignored (module offline)"));
             return;
         }
 
         mp3_.setVol(volume);
 
         LOG_INFO_BEGIN();
-        Serial.print(F("mp3: volume set to "));
+        Serial.print(F("mp3: Volume set to "));
         Serial.print(volume);
         LOG_INFO_END();
     }
@@ -89,7 +89,7 @@ public:
     
     void printToSerial() {
         if (!isReady_) {
-            LOG_ERR(F("mp3: command ignored (module offline)"));
+            LOG_ERR(F("mp3: Command ignored (module offline)"));
             return;
         }
 

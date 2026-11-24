@@ -18,7 +18,7 @@ public:
         const ShowPreset* ptr = getPresetByName(presetName);
         if (!ptr) {
             LOG_ERR_BEGIN();
-            Serial.print(F("player: preset not found: "));
+            Serial.print(F("player: Preset not found: "));
             Serial.print(presetName);
             LOG_ERR_END();
             return;
@@ -31,7 +31,7 @@ public:
         state_ = PlayerState::PLAYING;
 
         LOG_INFO_BEGIN();
-        Serial.print(F("player: currently playing: "));
+        Serial.print(F("player: Currently playing: "));
         Serial.print(currentShow_->getName());
         LOG_INFO_END();
 
@@ -41,7 +41,7 @@ public:
     void playRandomPreset() {
         const ShowPreset* ptr = getRandomPreset();
         if (!ptr) {
-            LOG_ERR(F("player: no presets available"));
+            LOG_ERR(F("player: No presets available"));
             return;
         }
 
@@ -52,7 +52,7 @@ public:
         state_ = PlayerState::PLAYING;
 
         LOG_INFO_BEGIN();
-        Serial.print(F("player: currently playing (random): "));
+        Serial.print(F("player: Currently playing (random): "));
         Serial.print(currentShow_->getName());
         LOG_INFO_END();
 
@@ -61,7 +61,7 @@ public:
 
     void playSerialSlot() {
         if (!serialSlot_.getCount()) {
-            LOG_ERR(F("player: serial slot is empty"));
+            LOG_ERR(F("player: Serial slot is empty"));
             return;
         }
 
@@ -70,7 +70,7 @@ public:
         state_ = PlayerState::PLAYING;
 
         LOG_INFO_BEGIN();
-        Serial.print(F("player: currently playing (serial slot): "));
+        Serial.print(F("player: Currently playing (serial slot): "));
         Serial.print(serialSlot_.getName());
         LOG_INFO_END();
 
@@ -82,7 +82,7 @@ public:
 
         state_ = PlayerState::PAUSED;
 
-        LOG_INFO(F("player: show paused"));
+        LOG_INFO(F("player: Show paused"));
     }
 
     void stop() {
@@ -90,7 +90,7 @@ public:
         currentIndex_ = 0;
         state_ = PlayerState::STOPPED;
 
-        LOG_INFO(F("player: show stopped"));
+        LOG_INFO(F("player: Show stopped"));
     }
 
     void update() {

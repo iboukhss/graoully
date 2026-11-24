@@ -28,7 +28,7 @@ public:
 
         for (int attempt = 1; attempt <= kMaxAttempts; attempt++) {
             LOG_INFO_BEGIN();
-            Serial.print(F("rtc: initializing... (attempt "));
+            Serial.print(F("rtc: Initializing... (attempt "));
             Serial.print(attempt);
             Serial.print(F("/"));
             Serial.print(kMaxAttempts);
@@ -37,7 +37,7 @@ public:
 
             if (rtc_.begin()) {
                 if (rtc_.lostPower()) {
-                    LOG_WARN(F("rtc: module lost power - please set time manually"));
+                    LOG_WARN(F("rtc: Module lost power - please set the time manually"));
                 }
 
                 // 1Hz ticks every second
@@ -48,10 +48,10 @@ public:
 
                 isReady_ = true;
 
-                LOG_INFO(F("rtc: initialized successfully"));
+                LOG_INFO(F("rtc: Initialized successfully"));
 
                 LOG_INFO_BEGIN();
-                Serial.print(F("rtc: current time: "));
+                Serial.print(F("rtc: Current time: "));
                 printToSerial();
                 LOG_INFO_END();
                 return;
@@ -62,12 +62,12 @@ public:
 
         isReady_ = false;
 
-        LOG_ERR(F("rtc: failed to initialize RTC module"));
+        LOG_ERR(F("rtc: Failed to initialize RTC module"));
     }
 
     void setDateTime(int year, int month, int day, int hour, int minute, int second) {
         if (!isReady_ ) {
-            LOG_ERR(F("rtc: command ignored (module offline)"));
+            LOG_ERR(F("rtc: Command ignored (module offline)"));
             return;
         }
 
@@ -79,13 +79,13 @@ public:
         rtc_.setSecond(second);
         rtc_.adjust();
 
-        LOG_INFO(F("rtc: time updated successfully"));
+        LOG_INFO(F("rtc: Time updated successfully"));
     }
 
     void printToSerial()
     {
         if (!isReady_ ) {
-            LOG_ERR(F("rtc: command ignored (module offline)"));
+            LOG_ERR(F("rtc: Command ignored (module offline)"));
             return;
         }
 

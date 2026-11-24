@@ -27,7 +27,7 @@ public:
 
     void append(unsigned long offset, const String& target, const String& action) {
         if (count_ >= kMaxShowCapacity) {
-            LOG_WARN(F("show: max capacity reached"));
+            LOG_WARN(F("show: Max capacity reached"));
             return;
         }
 
@@ -53,7 +53,7 @@ public:
         }
 
         LOG_INFO_BEGIN();
-        Serial.print(F("show: loaded preset: "));
+        Serial.print(F("show: Loaded preset: "));
         Serial.print(name_);
         LOG_INFO_END();
     }
