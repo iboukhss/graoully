@@ -3,6 +3,8 @@
 
 #include <DFRobot_DF1201S.h>
 
+#include "log.h"
+
 class Mp3Module {
 public:
     Mp3Module(HardwareSerial& serial) : serial_(serial) {}
@@ -13,11 +15,13 @@ public:
         const int kMaxAttempts = 5;
 
         for (int attempt = 1; attempt <= kMaxAttempts; attempt++) {
-            Serial.print(F("INFO: Initializing MP3 module (attempt "));
+            LOG_INFO_BEGIN();
+            Serial.print(F("mp3: initializing (attempt "));
             Serial.print(attempt);
             Serial.print(F("/"));
             Serial.print(kMaxAttempts);
-            Serial.println(F(")..."));
+            Serial.print(F(")..."));
+            LOG_INFO_END();
 
             if (mp3_.begin(serial_)) {
                 mp3_.setPrompt(false);
@@ -25,33 +29,50 @@ public:
                 mp3_.setPlayMode(mp3_.SINGLE);
                 mp3_.setVol(15);
 
-                Serial.println(F("OK: MP3 module initialized successfully."));
                 isReady_ = true;
+
+                LOG_INFO(F("mp3: initialized successfully"));
                 return;
             }
 
             delay(500);
         }
 
-        Serial.println(F("ERROR: Couldn't initialize MP3 module."));
         isReady_ = false;
+
+        LOG_ERR(F("mp3: failed to initialize MP3 module"));
     }
 
     void playFileNumber(int fileNum) {
-        if (!isReady_) return;
+        if (!isReady_) {
+            LOG_ERR(F("mp3: command ignored (module offline)"));
+            return;
+        }
 
         mp3_.playFileNum(fileNum);
 
         delay(300);
 
-        Serial.print(F("[INFO] Currently playing: "));
-        Serial.println(mp3_.getFileName());
+        LOG_INFO_BEGIN();
+        Serial.print(F("mp3: currently playing: #"));
+        Serial.print(fileNum);
+        Serial.print(F(" - "));
+        Serial.print(mp3_.getFileName());
+        LOG_INFO_END();
     }
 
     void setVolume(int volume) {
-        if (!isReady_) return;
+        if (!isReady_) {
+            LOG_ERR(F("mp3: command ignored (module offline)"));
+            return;
+        }
 
         mp3_.setVol(volume);
+
+        LOG_INFO_BEGIN();
+        Serial.print(F("mp3: volume set to "));
+        Serial.print(volume);
+        LOG_INFO_END();
     }
 
     void play() {
@@ -68,7 +89,7 @@ public:
     
     void printToSerial() {
         if (!isReady_) {
-            Serial.println(F("ERROR: MP3 module offline."));
+            LOG_ERR(F("mp3: command ignored (module offline)"));
             return;
         }
 
@@ -77,6 +98,7 @@ public:
         Serial.print(F("Current track: #")); Serial.println(mp3_.getCurFileNumber());
         Serial.print(F("File name: ")); Serial.println(mp3_.getFileName());
         Serial.print(F("Volume: ")); Serial.println(mp3_.getVol());
+        Serial.println(F("-------------------------------------------------------"));
     }
 
     bool isReady() const { return isReady_; }

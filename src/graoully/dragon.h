@@ -2,6 +2,7 @@
 #define DRAGON_H
 
 #include "led.h"
+#include "log.h"
 #include "motor.h"
 #include "mp3_module.h"
 
@@ -80,10 +81,18 @@ struct Dragon {
     }
 
     void stop() {
-        Serial.println(F("WARNING: Initated emergency stop."));
         for (int i = 0; i < kNumMotors; i++) {
             allMotors[i]->stop();
         }
+
+        eyes.off();
+        breath.off();
+        smoke.off();
+    }
+
+    void estop() {
+        LOG_WARN(F("drag: triggering emergency stop"));
+        stop();
     }
 
     bool isAnyMotorMoving() {
@@ -100,28 +109,39 @@ struct Dragon {
     }
 
     void home() {
+        LOG_INFO(F("drag: starting homing sequence..."));
         stop();
 
-        Serial.println(F("INFO: Initiating homing sequence. Waiting..."));
         for (int i = 0; i < kNumMotors; i++) {
             allMotors[i]->home();
         }
 
         waitUntilFinished();
-        Serial.println(F("Homing done. Graoully is ready."));
+        LOG_INFO(F("drag: homing done"));
     }
 
     void reset() {
+        LOG_INFO(F("drag: starting reset sequence..."));
         stop();
+
         headTilt.moveTo(0.3);
         headPan.moveTo(0.7);
         headRoll.moveTo(0.5);
         mouth.moveTo(0);
         ears.moveTo(1);
         eyelids.moveTo(1);
-        eyes.off();
-        breath.off();
+        eyes.on();
+
         waitUntilFinished();
+        LOG_INFO(F("drag: reset done"));
+    }
+
+    void printStatus() {
+        Serial.println(F("--- Dragon status ---"));
+        for (int i = 0; i < kNumMotors; i++) {
+            allMotors[i]->printToSerial();
+        }
+        Serial.println(F("-------------------------------------------------------"));
     }
 };
 

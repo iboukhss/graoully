@@ -1,4 +1,5 @@
 #include "dragon.h"
+#include "log.h"
 #include "show.h"
 #include "show_player.h"
 #include "show_scheduler.h"
@@ -39,24 +40,31 @@ bool isCapturingSequence = false;
 
 // mp3:play?u8_value
 
-void handleAudioCommand(const String& action)
+void splitActionArg(const String& rawAction, String& outAction, String& outArg)
 {
-    String parsedAction = action;
-    String parsedArg = "";
-
-    int qIndex = action.indexOf('?');
+    int qIndex = rawAction.indexOf('?');
 
     if (qIndex != -1) {
-        parsedAction = action.substring(0, qIndex);
-        parsedArg = action.substring(qIndex + 1);
+        outAction = rawAction.substring(0, qIndex);
+        outArg = rawAction.substring(qIndex + 1);
     }
+    else {
+        outAction = rawAction;
+        outArg = "";
+    }
+}
+
+void handleAudioCommand(const String& action)
+{
+    String parsedAction = "";
+    String parsedArg = "";
+
+    splitActionArg(action, parsedAction, parsedArg);
 
     if (parsedAction == "play") {
-        if (parsedArg.length()) {
+        if (parsedArg.length() > 0) {
             int trackNum = parsedArg.toInt();
             graoully.mp3.playFileNumber(trackNum);
-            Serial.print(F("Playing track number: "));
-            Serial.println(trackNum);
         }
         else {
             graoully.mp3.play();
@@ -66,33 +74,28 @@ void handleAudioCommand(const String& action)
         if (parsedArg.length() > 0) {
             int vol = parsedArg.toInt();
             graoully.mp3.setVolume(vol);
-            Serial.print(F("Volume set to: "));
-            Serial.println(vol);
         }
     }
     else if (parsedAction == "status") {
         graoully.mp3.printToSerial();
     }
     else {
-        Serial.print(F("ERROR: Unknown audio action"));
-        Serial.println(action);
+        LOG_ERR_BEGIN();
+        Serial.print(F("mp3: unknown action: "));
+        Serial.print(action);
+        LOG_ERR_END();
     }
 }
 
 void handleShowCommand(const String& action)
 {
-    String parsedAction = action;
+    String parsedAction = "";
     String parsedArg = "";
 
-    int qIndex = action.indexOf('?');
-
-    if (qIndex != -1) {
-        parsedAction = action.substring(0, qIndex);
-        parsedArg = action.substring(qIndex + 1);
-    }
+    splitActionArg(action, parsedAction, parsedArg);
 
     if (parsedAction == "play") {
-        if (parsedArg.length()) {
+        if (parsedArg.length() > 0) {
             player.play(parsedArg);
         }
         else {
@@ -102,19 +105,20 @@ void handleShowCommand(const String& action)
     else if (parsedAction == "stop") {
         player.stop();
     }
+    else {
+        LOG_ERR_BEGIN();
+        Serial.print(F("show: unknown action: "));
+        Serial.print(action);
+        LOG_ERR_END();
+    }
 }
 
 void handleSeqCommand(const String& action)
 {
-    String parsedAction = action;
+    String parsedAction = "";
     String parsedArg = "";
 
-    int qIndex = action.indexOf('?');
-
-    if (qIndex != -1) {
-        parsedAction = action.substring(0, qIndex);
-        parsedArg = action.substring(qIndex + 1);
-    }
+    splitActionArg(action, parsedAction, parsedArg);
 
     if (parsedAction == "begin") {
         player.getSerialSlot().clear();
@@ -131,8 +135,10 @@ void handleSeqCommand(const String& action)
             const ShowPreset* ptr = getPresetByName(parsedArg);
 
             if (!ptr) {
-                Serial.print(F("ERROR: Show preset not found -> "));
-                Serial.println(parsedArg);
+                LOG_ERR_BEGIN();
+                Serial.print(F("seq: preset not found: "));
+                Serial.print(parsedArg);
+                LOG_ERR_END();
                 return;
             }
 
@@ -145,9 +151,46 @@ void handleSeqCommand(const String& action)
         }
     }
     else {
-        Serial.print(F("ERROR: Unknown seq action -> "));
-        Serial.println(action);
+        LOG_ERR_BEGIN();
+        Serial.print(F("seq: unknown action: "));
+        Serial.print(action);
+        LOG_ERR_END();
     }
+}
+
+void handleCaptureLine(const String& input)
+{
+    if (input == ".") {
+        isCapturingSequence = false;
+        LOG_INFO(F("seq: CSV capture done"));
+        return;
+    }
+
+    int firstComma = input.indexOf(',');
+    int secondComma = input.indexOf(',', firstComma + 1);
+
+    if (firstComma == -1 || secondComma == -1) {
+        LOG_ERR_BEGIN();
+        Serial.print(F("seq: invalid CSV line: "));
+        Serial.print(input);
+        LOG_ERR_END();
+        return;
+    }
+
+    unsigned long offset = input.substring(0, firstComma).toInt();
+    String target = input.substring(firstComma + 1, secondComma);
+    String action = input.substring(secondComma + 1);
+
+    player.getSerialSlot().append(offset, target, action);
+
+    LOG_DBG_BEGIN();
+    Serial.print(F("seq: appended offset="));
+    Serial.print(offset);
+    Serial.print(F(", target="));
+    Serial.print(target);
+    Serial.print(F(", action="));
+    Serial.print(action);
+    LOG_DBG_END();
 }
 
 bool isLedCommand(const String& target)
@@ -172,7 +215,10 @@ Led* getLed(const String& target)
 
 void handleLedCommand(const String& target, const String& action)
 {
-    if (!allowNightEffects) return;
+    if (!allowNightEffects) {
+        LOG_WARN(F("led: blocked (night effects disabled)"));
+        return;
+    }
 
     Led* led = getLed(target);
 
@@ -184,7 +230,6 @@ void handleLedCommand(const String& target, const String& action)
     }
     else {
         long duration = action.toInt();
-        
         led->onFor(duration);
     }
 }
@@ -230,15 +275,10 @@ void handleMotorCommand(const String& target, const String& action)
 
 void handleTimeCommand(const String& action)
 {
-    String parsedAction = action;
+    String parsedAction = "";
     String parsedArg = "";
 
-    int qIndex = action.indexOf('?');
-
-    if (qIndex != -1) {
-        parsedAction = action.substring(0, qIndex);
-        parsedArg = action.substring(qIndex + 1);
-    }
+    splitActionArg(action, parsedAction, parsedArg);
 
     if (parsedAction == "print") {
         scheduler.getClock().printToSerial();
@@ -251,12 +291,14 @@ void handleTimeCommand(const String& action)
             scheduler.getClock().setDateTime(y, m, d, hh, mm, ss);
         }
         else {
-            Serial.println(F("ERROR: Invalid format. Use: time:set?YYYY,MM,DD,HH,MM,SS"));
+            LOG_ERR(F("time: invalid format - expected YYYY,MM,DD,HH,MM,SS"));
         }
     }
     else {
-        Serial.print(F("ERROR: Unknown time action -> "));
-        Serial.println(action);
+        LOG_ERR_BEGIN();
+        Serial.print(F("time: unknown action: "));
+        Serial.print(action);
+        LOG_ERR_END();
     }
 }
 
@@ -266,25 +308,19 @@ void handleGraoullyCommand(const String& action)
         graoully.home();
     }
     else if (action == "stop") {
-        graoully.stop();
+        graoully.estop();
     }
     else if (action == "reset") {
         graoully.reset();
     }
     else if (action == "status") {
-        Serial.println("--- Graoully status ---");
-
-        for (int i = 0; i < Dragon::kNumMotors; i++) {
-            Motor* m = graoully.allMotors[i];
-
-            m->printToSerial();
-        }
-
-        Serial.println(F("-------------------------------------"));
+        graoully.printStatus();
     }
     else {
-        Serial.print(F("ERROR: Unknown Graoully action -> "));
-        Serial.println(action);
+        LOG_ERR_BEGIN();
+        Serial.print(F("drag: unknown action: "));
+        Serial.print(action);
+        LOG_ERR_END();
     }
 }
 
@@ -292,19 +328,23 @@ void handleModeCommand(const String& action)
 {
     if (action == "auto") {
         currentMode = ControlMode::AUTO;
-        Serial.println(F("OK: Switched to automatic mode."));
+        LOG_INFO(F("mode: switched to AUTO"));
     }
     else if (action == "manual") {
         currentMode = ControlMode::MANUAL;
-        Serial.println(F("OK: Switched to manual mode."));
+        LOG_INFO(F("mode: switched to MANUAL"));
     }
     else if (action == "status") {
-        Serial.print(F("Current mode: "));
-        Serial.println(currentMode == ControlMode::AUTO ? F("AUTO") : F("MANUAL"));
+        LOG_INFO_BEGIN();
+        Serial.print(F("mode: currently set to: "));
+        Serial.print(currentMode == ControlMode::AUTO ? F("AUTO") : F("MANUAL"));
+        LOG_INFO_END();
     }
     else {
-        Serial.print(F("ERROR: Unknown mode action: "));
-        Serial.println(action);
+        LOG_ERR_BEGIN();
+        Serial.print(F("mode: unknown action: "));
+        Serial.print(action);
+        LOG_ERR_END();
     }
 }
 
@@ -312,30 +352,29 @@ void handleNightCommand(const String& action)
 {
     if (action == "on") {
         allowNightEffects = true;
-        Serial.println(F("OK: Night effects enabled."));
+        LOG_INFO(F("night: effects enabled"));
     }
     else if (action == "off") {
         allowNightEffects = false;
-        Serial.println(F("OK: Night effects disabled."));
+        LOG_INFO(F("night: effects disabled"));
     }
     else if (action == "status") {
-        Serial.print(F("Night effects: "));
-        Serial.println(allowNightEffects ? F("ENABLED") : F("DISABLED"));
+        LOG_INFO_BEGIN();
+        Serial.print(F("night: effects status: "));
+        Serial.print(allowNightEffects ? F("enabled") : F("disabled"));
+        LOG_INFO_END();
     }
     else {
-        Serial.print(F("ERROR: Unknown night action ->"));
-        Serial.println(action);
+        LOG_ERR_BEGIN();
+        Serial.print(F("night: unknown action: "));
+        Serial.print(action);
+        LOG_ERR_END();
     }
 }
 
 void executeCommand(const String& target, const String& action)
 {
-    Serial.print(F("Received -> "));
-    Serial.print(target);
-    Serial.print(F(" : "));
-    Serial.println(action);
-
-    if (target == "graoully") {
+    if (target == "drag") {
         handleGraoullyCommand(action);
     }
     else if (isMotorCommand(target)) {
@@ -357,8 +396,10 @@ void executeCommand(const String& target, const String& action)
         handleNightCommand(action);
     }
     else {
-        Serial.print(F("ERROR: Unknown target -> "));
-        Serial.println(target);
+        LOG_ERR_BEGIN();
+        Serial.print(F("cmd: unknown target: "));
+        Serial.print(target);
+        LOG_ERR_END();
     }
 }
 
@@ -371,34 +412,7 @@ void handleSerialCommands()
         if (!input.length()) return;
 
         if (isCapturingSequence) {
-            if (input == ".") {
-                isCapturingSequence = false;
-                Serial.println(F("Capture complete."));
-                return;
-            }
-
-            int firstComma = input.indexOf(',');
-            int secondComma = input.indexOf(',', firstComma + 1);
-
-            if (firstComma == -1 || secondComma == -1) {
-                Serial.print(F("ERROR: Invalid CSV format -> "));
-                Serial.println(input);
-            }
-            else {
-                unsigned long offset = input.substring(0, firstComma).toInt();
-                String target = input.substring(firstComma + 1, secondComma);
-                String action = input.substring(secondComma + 1);
-
-                player.getSerialSlot().append(offset, target, action);
-
-                Serial.print(F("OK Offset: "));
-                Serial.print(offset);
-                Serial.print(F(", Target: "));
-                Serial.print(target);
-                Serial.print(F(", Action: "));
-                Serial.println(action);
-            }
-
+            handleCaptureLine(input);
             return;
         }
 
@@ -408,21 +422,23 @@ void handleSerialCommands()
             String target = input.substring(0, separatorIndex);
             String action = input.substring(separatorIndex + 1);
 
-            // Mode commands are always allowed
+            // These commands are always allowed regardless of the current control mode
             if (target == "mode") {
                 handleModeCommand(action);
                 return;
             }
-            else if (target == "time") {
+
+            if (target == "time") {
                 handleTimeCommand(action);
-            }
-            else if (currentMode == ControlMode::AUTO) {
-                Serial.println(F("ERROR: Command blocked. System is currently in AUTO mode. Switch to MANUAL mode to take control."));
                 return;
             }
-            else {
-                executeCommand(target, action);
+            
+            if (currentMode == ControlMode::AUTO) {
+                LOG_ERR(F("cmd: command blocked (switch to MANUAL mode)"));
+                return;
             }
+            
+            executeCommand(target, action);
         }
     }
 }
@@ -431,14 +447,16 @@ void setup()
 {
     Serial.begin(115200);
 
-    // Wait for serial monitor to connect
-    delay(2000);
+    // Give some time for serial monitor to connect
+    delay(3000);
 
     randomSeed(analogRead(A15));
     scheduler.begin();
     graoully.begin();
-    graoully.eyes.on();
     graoully.home();
+    graoully.reset();
+
+    LOG_INFO(F("setup: done - Graoully ready"));
 }
 
 void loop()
