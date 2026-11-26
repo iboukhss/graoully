@@ -213,7 +213,6 @@ const ShowItem PROGMEM kBlinkSeqData[] = {
 constexpr int kBlinkSeqCount = sizeof(kBlinkSeqData) / sizeof(kBlinkSeqData[0]);
 
 const ShowPreset PROGMEM kPresetLibrary[] = {
-    { "JC1",        kJc1SeqData,        kJc1SeqCount        },
     { "HISSROAR",   kHissRoarSeqData,   kHissRoarSeqCount   }
 };
 

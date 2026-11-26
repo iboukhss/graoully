@@ -51,8 +51,6 @@ public:
 
         mp3_.playFileNum(fileNum);
 
-        delay(300);
-
         LOG_INFO_BEGIN();
         Serial.print(F("mp3: Currently playing: #"));
         Serial.print(fileNum);

@@ -104,6 +104,17 @@ struct Dragon {
         return false;
     }
 
+    bool isAnyLedTimed() {
+        for (int i = 0; i < kNumLeds; i++) {
+            if (allLeds[i]->getState() == LedState::TIMED) return true;
+        }
+        return false;
+    }
+
+    bool isBusy() {
+        return isAnyMotorMoving() || isAnyLedTimed();
+    }
+
     void waitUntilFinished() {
         while (isAnyMotorMoving()) {
             update();
@@ -112,6 +123,7 @@ struct Dragon {
 
     void home() {
         LOG_INFO(F("drag: Starting homing sequence..."));
+
         stop();
 
         for (int i = 0; i < kNumMotors; i++) {

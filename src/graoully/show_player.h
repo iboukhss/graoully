@@ -14,6 +14,28 @@ enum class PlayerState {
 
 class ShowPlayer {
 public:
+    void update() {
+        if (state_ != PlayerState::PLAYING) return;
+
+        DRAGON_ASSERT(currentShow_ && "currentShow_ cannot be null!");
+
+        if (currentIndex_ < currentShow_->getCount()) {
+            const ShowItem& item = currentShow_->getItemAt(currentIndex_);
+
+            if (millis() - startTimeMs_ >= item.offsetMs) {
+                executeCommand(item.target, item.action);
+                currentIndex_++;
+            }
+            return;
+        }
+
+        if (graoully.isBusy()) return;
+
+        stop();
+        graoully.home();
+        graoully.reset();
+    }
+
     void play(const String& presetName) {
         const ShowPreset* ptr = getPresetByName(presetName);
         if (!ptr) {
@@ -91,26 +113,6 @@ public:
         state_ = PlayerState::STOPPED;
 
         LOG_INFO(F("player: Show stopped"));
-    }
-
-    void update() {
-        if (state_ != PlayerState::PLAYING) return;
-
-        DRAGON_ASSERT(currentShow_ && "currentShow_ cannot be null!");
-
-        const ShowItem& item = currentShow_->getItemAt(currentIndex_);
-        unsigned long targetTriggerTimeMs = startTimeMs_ + item.offsetMs;
-
-        if (millis() >= targetTriggerTimeMs) {
-            executeCommand(item.target, item.action);
-            currentIndex_++;
-        }
-
-        if (currentIndex_ >= currentShow_->getCount()) {
-            stop();
-            graoully.home();
-            graoully.reset();
-        }
     }
 
     PlayerState getState() const { return state_; }

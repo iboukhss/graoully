@@ -27,13 +27,11 @@ public:
         unsigned long currentMillis = millis();
 
         if (!rtc_.isReady()) {
-            const unsigned long kIntervalMin = 1UL;
-            const unsigned long kIntervalMs = kIntervalMin * 60UL * 1000UL;
-            if (currentMillis - lastMillis_ >= kIntervalMs) {
+            if (currentMillis - lastMillis_ >= kShowIntervalMs) {
                 lastMillis_ = currentMillis;
                 LOG_INFO_BEGIN();
                 Serial.print(F("sched: RTC offline - falling back to scheduling shows every "));
-                Serial.print(kIntervalMin);
+                Serial.print(kShowIntervalMinutes);
                 Serial.print(F(" minutes"));
                 LOG_INFO_END();
                 player.playRandomPreset();
@@ -46,30 +44,27 @@ public:
         lastPollMs_ = currentMillis;
 
         TimeOfDay now = rtc_.getTimeOfDay();
+
+        if (now.hour >= 24 || now.minute >= 60 || now.second >= 60) {
+            LOG_ERR_BEGIN();
+            Serial.print(F("sched: Invalid time: "));
+            Serial.print(F("hours="));
+            Serial.print(now.hour);
+            Serial.print(F(", minutes="));
+            Serial.print(now.minute);
+            Serial.print(F(", seconds="));
+            Serial.print(now.second);
+            LOG_ERR_END();
+            return;
+        }
+
         int currentTotalMinutes = now.hour * 60 + now.minute;
 
         if (currentTotalMinutes == lastTriggeredMinute_) return;
 
-        DayOfWeek day = rtc_.getDayOfWeek();
-
-        // 10 PM on Fri-Sat, 9 PM on Sun-Thu
-        int eveningEndHour = (day >= DayOfWeek::FRIDAY) ? 22 : 21;
-
-        // Daytime block: 11:00 to 17:00 (Every 15 minutes)
-        if (now.hour >= 11 && now.hour < 17) {
-            if (now.minute % 5 == 0) {
-                LOG_INFO(F("sched: Scheduling daytime show"));
+        if (now.hour >= 16 && now.hour < 22) {
+            if (now.minute % kShowIntervalMinutes == 0) {
                 lastTriggeredMinute_ = currentTotalMinutes;
-                allowNightEffects = false;
-                player.playRandomPreset();
-            }
-        }
-        // Evening block: 17:00 to eveningEndHour (Every 10 minutes)
-        else if (now.hour >= 17 && now.hour < eveningEndHour) {
-            if (now.minute % 10 == 0) {
-                LOG_INFO(F("sched: Scheduling nighttime show"));
-                lastTriggeredMinute_ = currentTotalMinutes;
-                allowNightEffects = true;
                 player.playRandomPreset();
             }
         }
@@ -78,6 +73,9 @@ public:
     RtcModule& getClock() { return rtc_; }
 
 private:
+    static constexpr unsigned long kShowIntervalMinutes = 5UL;
+    static constexpr unsigned long kShowIntervalMs = kShowIntervalMinutes * 60UL * 1000UL;
+
     RtcModule rtc_;
     unsigned long lastPollMs_ = 0;
     unsigned long lastMillis_ = 0;

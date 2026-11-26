@@ -52,7 +52,7 @@ public:
         targetPositionMm_ = 0.0f;
 
         float fullStrokeTimeMs = (strokeMm_ / speedMmS_) * 1000.0f;
-        travelTimeMs_ = fullStrokeTimeMs * 1.4f;
+        travelTimeMs_ = fullStrokeTimeMs * 1.20f;
 
         retract();
     }
@@ -74,7 +74,7 @@ public:
         travelTimeMs_ = (distanceMm / speedMmS_) * 1000.0f;
 
         // If we move to an absolute boundary (0.0 or 1.0) then we add a safety
-        // margin proportional to the full stroke length, here 20%
+        // margin proportional to the full stroke length, here 5%
         if (position <= 0.0f || position >= 1.0f) {
             float fullStrokeTimeMs = (strokeMm_ / speedMmS_) * 1000.0f;
             travelTimeMs_ += (fullStrokeTimeMs * 0.05f);
