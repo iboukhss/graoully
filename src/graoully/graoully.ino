@@ -241,7 +241,10 @@ void handleTimeCommand(const String& action)
     splitActionArg(action, parsedAction, parsedArg);
 
     if (parsedAction == "print") {
+        LOG_INFO_BEGIN();
+        Serial.print(F("time: "));
         scheduler.getClock().printToSerial();
+        LOG_INFO_END();
     }
     else if (parsedAction == "set") {
         int y, m, d, hh, mm, ss;

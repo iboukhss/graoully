@@ -4,7 +4,9 @@
 enum class LedState {
     OFF,
     ON,
-    TIMED
+    TIMED,
+    BLINK,
+    BLINK_TIMED
 };
 
 class Led {
@@ -28,6 +30,27 @@ public:
         case LedState::TIMED:
             if (millis() - startTimeMs_ >= durationMs_) {
                 off();
+            }
+            break;
+
+        case LedState::BLINK:
+            if (millis() - lastToggleMs_ >= blinkIntervalMs_) {
+                isLedOn_ = !isLedOn_;
+                setBrightness(isLedOn_ ? 255 : 0);
+                lastToggleMs_ = millis();
+            }
+            break;
+
+        case LedState::BLINK_TIMED:
+            if (millis() - startTimeMs_ >= durationMs_) {
+                off();
+                break;
+            }
+            if (millis() - lastToggleMs_ >= blinkIntervalMs_) {
+                isLedOn_ = !isLedOn_;
+                setBrightness(isLedOn_ ? 255 : 0);
+                lastToggleMs_ = millis();
+                break;
             }
             break;
         }
@@ -56,10 +79,32 @@ public:
     void onFor(unsigned long durationMs) {
         if (pin_ == -1) return;
 
+        durationMs_ = durationMs;
         setBrightness(255);
         startTimeMs_ = millis();
         state_ = LedState::TIMED;
+    }
+
+    void blink(unsigned long intervalMs) {
+        if (pin_ == -1) return;
+
+        blinkIntervalMs_ = intervalMs;
+        setBrightness(255);
+        lastToggleMs_ = millis();
+        isLedOn_ = true;
+        state_ = LedState::BLINK;
+    }
+
+    void blinkFor(unsigned long durationMs, unsigned long intervalMs = 100) {
+        if (pin_ == -1) return;
+
         durationMs_ = durationMs;
+        blinkIntervalMs_ = intervalMs;
+        setBrightness(255);
+        startTimeMs_ = millis();
+        lastToggleMs_ = startTimeMs_;
+        isLedOn_ = true;
+        state_ = LedState::BLINK_TIMED;
     }
 
     const String& getName() const { return name_; }
@@ -67,11 +112,15 @@ public:
 
 private:
     String name_;
+
     int pin_ = -1;
 
     LedState state_ = LedState::OFF;
     unsigned long startTimeMs_ = 0;
     unsigned long durationMs_ = 0;
+    unsigned long blinkIntervalMs_ = 0;
+    unsigned long lastToggleMs_ = 0;
+    bool isLedOn_ = false;
 };
 
 #endif

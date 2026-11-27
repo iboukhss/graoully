@@ -2,6 +2,7 @@
 #define SHOW_PRESETS_H
 
 #include "show.h"
+#include "log.h"
 
 // This sequence is best used when starting at a neutral position, ie. head tilt
 // of 0.5 or higher
@@ -17,8 +18,6 @@ const ShowItem PROGMEM kSleepSeqData[] = {
     { 17000, "ears",    "0.0" },
     { 22000, "mouth",   "0.1" }
 };
-
-constexpr int kSleepSeqCount = sizeof(kSleepSeqData) / sizeof(kSleepSeqData[0]);
 
 // This sequence works really well when the dragon is already sleeping
 const ShowItem PROGMEM kAlertSeqData[] = {
@@ -38,15 +37,11 @@ const ShowItem PROGMEM kAlertSeqData[] = {
     { 45000, "mouth",   "0.1"  }
 };
 
-constexpr int kAlertSeqCount = sizeof(kAlertSeqData) / sizeof(kAlertSeqData[0]);
-
 const ShowItem PROGMEM kWakeSeqData[] = {
     { 0,     "breath",   "on"   },
     { 0,     "mouth",    "0.1"  },
     { 1500,  "smoke",    "3000" }
 };
-
-constexpr int kWakeSeqCount = sizeof(kWakeSeqData) / sizeof(kWakeSeqData[0]);
 
 const ShowItem PROGMEM kJc1SeqData[] = {
     { 0,     "tilt",   "0.6"  },
@@ -59,22 +54,26 @@ const ShowItem PROGMEM kJc1SeqData[] = {
     { 15000, "pan",    "0.9"  }
 };
 
-constexpr int kJc1SeqCount = sizeof(kJc1SeqData) / sizeof(kJc1SeqData[0]);
-
 const ShowItem PROGMEM kHissRoarSeqData[] = {
     { 0,     "eyes",    "on"     },
     { 0,     "eyelids", "1.0"    },
+    { 0,     "ears",    "1.0"    },
     { 0,     "pan",     "0.7"    },
     { 0,     "tilt",    "0.1"    },
     { 0,     "roll",    "1.0"    },
-    { 2000,  "mp3",     "play?2" },
-    { 4000,  "mouth",   "1.0"    },
-    { 5000,  "breath",  "on"     },
-    { 5000,  "smoke",   "3000"   },
-    { 10000, "pan",     "0.3"    }
+    { 1000,  "mp3",     "play?2" },
+    { 1000,  "mouth",   "0.3"    },
+    { 1000,  "breath",  "500"    },
+    { 1000,  "smoke",   "500"    },
+    { 2000,  "mouth",   "0.6"    },
+    { 2000,  "breath",  "500"    },
+    { 2000,  "smoke",   "500"    },
+    { 3000,  "mouth",   "1.0"    },
+    { 3000,  "breath",  "on"     },
+    { 3000,  "smoke",   "9000"   },
+    { 10000, "pan",     "0.3"    },
+    { 16000, "ears",    "0.0"    }
 };
-
-constexpr int kHissRoarSeqCount = sizeof(kHissRoarSeqData) / sizeof(kHissRoarSeqData[0]);
 
 const ShowItem PROGMEM kSleepGruntSeqData[] = {
     { 0,     "eyes",    "off"     },
@@ -114,9 +113,7 @@ const ShowItem PROGMEM kSleepGruntSeqData[] = {
     { 28000, "mouth",   "0.1" }
 };
 
-constexpr int kSleepGruntSeqCount = sizeof(kSleepGruntSeqData) / sizeof(kSleepGruntSeqData[0]);
-
-// Vibecoded show presets
+// Vibecoded show presets (DO NOT USE)
 
 // 1. SNOOZE: A restless, twitchy sleeping shift
 const ShowItem PROGMEM kSnoozeSeqData[] = {
@@ -128,7 +125,6 @@ const ShowItem PROGMEM kSnoozeSeqData[] = {
     { 9000,  "breath",  "on"  },
     { 12000, "breath",  "off" }
 };
-constexpr int kSnoozeSeqCount = sizeof(kSnoozeSeqData) / sizeof(kSnoozeSeqData[0]);
 
 // 2. CURIOUS: Head tilting and scanning around inquisitively
 const ShowItem PROGMEM kCuriousSeqData[] = {
@@ -143,7 +139,6 @@ const ShowItem PROGMEM kCuriousSeqData[] = {
     { 12000, "pan",     "0.5" },
     { 14000, "eyes",    "off" }
 };
-constexpr int kCuriousSeqCount = sizeof(kCuriousSeqData) / sizeof(kCuriousSeqData[0]);
 
 // 3. SURPRISE: A sudden jump, wide eyes, and smoke burst
 const ShowItem PROGMEM kSurpriseSeqData[] = {
@@ -158,7 +153,6 @@ const ShowItem PROGMEM kSurpriseSeqData[] = {
     { 5000,  "eyelids", "0.4"  },
     { 7000,  "ears",    "0.3"  }
 };
-constexpr int kSurpriseSeqCount = sizeof(kSurpriseSeqData) / sizeof(kSurpriseSeqData[0]);
 
 // 4. GROWL: Aggressive posture, heavy breathing, and a mouth snap
 const ShowItem PROGMEM kGrowlSeqData[] = {
@@ -173,7 +167,6 @@ const ShowItem PROGMEM kGrowlSeqData[] = {
     { 8000,  "pan",     "0.4"  },
     { 10000, "breath",  "off"  }
 };
-constexpr int kGrowlSeqCount = sizeof(kGrowlSeqData) / sizeof(kGrowlSeqData[0]);
 
 // 5. STRETCH: A slow yawn and physical reset
 const ShowItem PROGMEM kStretchSeqData[] = {
@@ -188,7 +181,6 @@ const ShowItem PROGMEM kStretchSeqData[] = {
     { 9000,  "tilt",    "0.5"  },
     { 11000, "ears",    "0.0"  }
 };
-constexpr int kStretchSeqCount = sizeof(kStretchSeqData) / sizeof(kStretchSeqData[0]);
 
 // 6. SENTRY: Methodical guard scan left and right
 const ShowItem PROGMEM kSentrySeqData[] = {
@@ -200,7 +192,6 @@ const ShowItem PROGMEM kSentrySeqData[] = {
     { 9000,  "ears",    "0.6" },
     { 11000, "eyes",    "off" }
 };
-constexpr int kSentrySeqCount = sizeof(kSentrySeqData) / sizeof(kSentrySeqData[0]);
 
 // 7. BLINK: A quick, subtle reset of expression
 const ShowItem PROGMEM kBlinkSeqData[] = {
@@ -210,13 +201,12 @@ const ShowItem PROGMEM kBlinkSeqData[] = {
     { 1200,  "ears",    "0.4" },
     { 2000,  "ears",    "0.0" }
 };
-constexpr int kBlinkSeqCount = sizeof(kBlinkSeqData) / sizeof(kBlinkSeqData[0]);
 
 const ShowPreset PROGMEM kPresetLibrary[] = {
-    { "HISSROAR",   kHissRoarSeqData,   kHissRoarSeqCount   }
+    { "HISSROAR",   kHissRoarSeqData,   arrayCount(kHissRoarSeqData)   }
 };
 
-constexpr int kNumPresets = sizeof(kPresetLibrary) / sizeof(kPresetLibrary[0]);
+constexpr int kNumPresets = arrayCount(kPresetLibrary);
 
 inline const ShowPreset* getPresetByName(const String& name)
 {

@@ -48,4 +48,11 @@
         abort();                                    \
     } while(0)
 
+
+// Replacement for the classic sizeof(x) / sizeof(x[0]) macro
+template <typename T, size_t N>
+constexpr size_t arrayCount(const T (&)[N]) {
+    return N;
+}
+
 #endif

@@ -22,11 +22,11 @@ struct Dragon {
 
     Mp3Module mp3;
 
-    Motor* allMotors[8];
-    Led*   allLeds[3];
+    static constexpr int kNumMotors = 8;
+    static constexpr int kNumLeds = 3;
 
-    static constexpr int kNumMotors = sizeof(allMotors) / sizeof(allMotors[0]);
-    static constexpr int kNumLeds = sizeof(allLeds) / sizeof(allLeds[0]);
+    Motor* allMotors[kNumMotors];
+    Led*   allLeds[kNumLeds];
 
     Dragon()
       : wingsTop        ("wings_top", -1, -1, -1, 100.0, 14.0),
@@ -69,6 +69,7 @@ struct Dragon {
             allLeds[i]->begin();
         }
 
+        eyes.on();
         mp3.begin();
     }
 
@@ -87,7 +88,6 @@ struct Dragon {
             allMotors[i]->stop();
         }
 
-        eyes.off();
         breath.off();
         smoke.off();
     }
@@ -137,6 +137,8 @@ struct Dragon {
     void reset() {
         LOG_INFO(F("drag: Starting reset sequence..."));
         stop();
+
+        mp3.playFileNumber(2);
 
         headTilt.moveTo(0.3);
         headPan.moveTo(0.7);

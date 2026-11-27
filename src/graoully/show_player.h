@@ -32,7 +32,13 @@ public:
         if (graoully.isBusy()) return;
 
         stop();
-        graoully.home();
+
+        showsSinceLastHome_++;
+
+        if (showsSinceLastHome_ >= kHomeEveryNShows) {
+            graoully.home();
+        }
+
         graoully.reset();
     }
 
@@ -119,9 +125,13 @@ public:
     Show& getSerialSlot() { return serialSlot_; }
 
 private:
+    static constexpr int kHomeEveryNShows = 12;
+
     Show* currentShow_ = nullptr;
-    int currentIndex_ = 0;
+
     unsigned long startTimeMs_ = 0;
+    int currentIndex_ = 0;
+    int showsSinceLastHome_ = 0;
 
     Show flashSlot_{ "FLASH_SLOT" };
     Show serialSlot_{ "SERIAL_SLOT" };
